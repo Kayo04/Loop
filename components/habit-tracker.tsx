@@ -5,7 +5,16 @@ import Link from "next/link"
 import { createHabit, toggleHabit, deleteHabit } from "@/app/dashboard/actions"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { CheckCircle2, Circle, Trash2, Plus, Flame, CalendarDays, MoreHorizontal } from "lucide-react"
+import { CheckCircle2, Circle, Trash2, Plus, Flame, MoreHorizontal, Calendar } from "lucide-react"
+import { Progress } from "@/components/ui/progress"
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table"
 
 type HabitWithHistory = {
   id: string
@@ -14,20 +23,25 @@ type HabitWithHistory = {
   history: string[]
 }
 
-export function HabitTracker({ habits }: { habits: HabitWithHistory[] }) {
+type WeekDate = {
+    label: string
+    dateIso: string
+    dayUser: number
+    isToday: boolean
+}
+
+type HabitTrackerProps = {
+    habits: HabitWithHistory[]
+    weekDays: WeekDate[]
+    monthName: string
+    daysInMonth: number
+}
+
+export function HabitTracker({ habits, weekDays, monthName, daysInMonth }: HabitTrackerProps) {
   const [isAdding, setIsAdding] = useState(false)
   
-  // --- LÓGICA DO CALENDÁRIO ---
-  const now = new Date()
-  const year = now.getFullYear()
-  const month = now.getMonth()
-  const monthName = now.toLocaleString('pt-PT', { month: 'long' })
-  const capitalizedMonth = monthName.charAt(0).toUpperCase() + monthName.slice(1)
-  const daysInMonth = new Date(year, month + 1, 0).getDate()
-  const firstDayOfWeek = new Date(year, month, 1).getDay()
-  const daysArray = Array.from({ length: daysInMonth }, (_, i) => i + 1)
-  const currentDay = now.getDate()
-  const weekDays = ['D', 'S', 'T', 'Q', 'Q', 'S', 'S']
+  // As datas agora vêm do servidor (page.tsx) para evitar erros de hidratação (Hydration Failure)
+  const headers = weekDays
 
   return (
     <div className="space-y-6">
@@ -48,105 +62,109 @@ export function HabitTracker({ habits }: { habits: HabitWithHistory[] }) {
             </form>
         )}
 
-        {/* --- GRID DE HÁBITOS (Lado a Lado) --- */}
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-          
-          {habits.map((habit) => {
-             const todayISO = new Date().toISOString().split('T')[0]
-             const isDoneToday = habit.history.includes(todayISO)
-             
-             return (
-                <div key={habit.id} className="relative group bg-white dark:bg-slate-900 rounded-3xl p-5 border border-slate-200 dark:border-slate-800 shadow-sm hover:shadow-xl hover:translate-y-[-2px] hover:border-blue-200 dark:hover:border-slate-700 transition-all duration-300 flex flex-col justify-between">
-                   
-                   {/* 1. TOPO: Título e Botões */}
-                   <div className="flex justify-between items-start mb-4">
-                      {/* Título e Streak */}
-                      <Link href={`/dashboard/habits/${habit.id}`} className="flex-1 pr-2">
-                         <h4 className={`font-bold text-lg leading-tight line-clamp-2 ${isDoneToday ? 'text-slate-400 dark:text-slate-500 line-through' : 'text-slate-900 dark:text-white'}`}>
-                            {habit.title}
-                         </h4>
-                         <div className="flex items-center gap-1.5 text-xs font-bold text-slate-400 mt-1.5">
-                            <Flame size={12} className={habit.streak > 0 ? "text-orange-500 fill-orange-500" : "text-slate-300"} />
-                            {habit.streak} dias seguidos
-                         </div>
-                      </Link>
+        {/* --- TABELA TIPO EXCEL (Layout Profissional) --- */}
+        <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
+            <div className="overflow-x-auto">
+                <Table>
+                    <TableHeader className="bg-slate-50 dark:bg-slate-950">
+                        <TableRow className="hover:bg-transparent">
+                            <TableHead className="w-[300px] pl-6 font-bold text-slate-500 uppercase text-xs tracking-wider">Hábito</TableHead>
+                            {/* Cabeçalhos dos Dias */}
+                            {headers.map((h, i) => (
+                                <TableHead key={i} className={`text-center p-0 w-10 h-14 ${h.isToday ? "bg-blue-50/50 dark:bg-blue-900/10" : ""}`}>
+                                    <div className="flex flex-col items-center justify-center h-full">
+                                        <span className="text-[10px] font-bold text-slate-400 uppercase">{h.label}</span>
+                                        <span className={`text-xs font-bold mt-0.5 w-6 h-6 flex items-center justify-center rounded-full ${h.isToday ? "bg-blue-600 text-white" : "text-slate-600 dark:text-slate-300"}`}>
+                                            {h.dayUser}
+                                        </span>
+                                    </div>
+                                </TableHead>
+                            ))}
+                            <TableHead className="w-[200px] text-center font-bold text-slate-500 uppercase text-xs tracking-wider">Progresso Mensal</TableHead>
+                            <TableHead className="w-[50px]"></TableHead>
+                        </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                        {habits.map((habit, index) => {
+                             // Calcular progresso do mês atual
+                             const currentMonthStr = new Date().toISOString().slice(0, 7)
+                             const completionsMonth = habit.history.filter(d => d.startsWith(currentMonthStr)).length
+                             const progress = Math.round((completionsMonth / daysInMonth) * 100)
+                             
+                             return (
+                                <TableRow key={habit.id} className="group transition-colors hover:bg-slate-50/50 dark:hover:bg-slate-800/50">
+                                    {/* Título + Streak */}
+                                    <TableCell className="pl-6 py-4 font-medium">
+                                        <Link href={`/dashboard/habits/${habit.id}`} className="block hover:opacity-80 transition-opacity">
+                                            <div className="flex flex-col">
+                                                <span className="text-slate-900 dark:text-white font-bold text-base truncate max-w-[200px] sm:max-w-none">{habit.title}</span>
+                                                <div className="flex items-center gap-1 mt-1">
+                                                     <Flame size={12} className={habit.streak > 0 ? "text-orange-500 fill-orange-500" : "text-slate-300"} />
+                                                     <span className={`text-xs ${habit.streak > 0 ? "text-orange-600 dark:text-orange-400 font-bold" : "text-slate-400"}`}>
+                                                        {habit.streak} dias
+                                                     </span>
+                                                </div>
+                                            </div>
+                                        </Link>
+                                    </TableCell>
+                                    
+                                    {/* Grid de Checkboxes (7 dias) */}
+                                    {headers.map((h, i) => {
+                                        const isCompleted = habit.history.includes(h.dateIso)
+                                        return (
+                                            <TableCell key={i} className={`p-0 text-center ${h.isToday ? "bg-blue-50/30 dark:bg-blue-900/5" : ""}`}>
+                                                <div className="flex items-center justify-center h-full">
+                                                    <button 
+                                                        onClick={() => toggleHabit(habit.id, h.dateIso)}
+                                                        className={`w-8 h-8 rounded-lg flex items-center justify-center transition-all duration-200 ${
+                                                            isCompleted 
+                                                                ? "bg-green-500 text-white shadow-sm scale-100" 
+                                                                : "bg-slate-100 dark:bg-slate-800 text-slate-300 hover:border-blue-400 hover:text-blue-400 border border-transparent scale-90 hover:scale-100"
+                                                        }`}
+                                                    >
+                                                        {isCompleted ? <CheckCircle2 size={16} strokeWidth={3} /> : <div className="w-1.5 h-1.5 rounded-full bg-slate-300 dark:bg-slate-700" />}
+                                                    </button>
+                                                </div>
+                                            </TableCell>
+                                        )
+                                    })}
 
-                      {/* Botão de Check */}
-                      <button 
-                        onClick={(e) => {
-                            e.stopPropagation()
-                            toggleHabit(habit.id)
-                        }} 
-                        className="active:scale-90 transition-transform focus:outline-none flex-shrink-0 ml-2"
-                      >
-                         {isDoneToday ? (
-                            <div className="w-10 h-10 bg-green-500 rounded-xl flex items-center justify-center text-white shadow-md shadow-green-500/30">
-                               <CheckCircle2 size={20} strokeWidth={3} />
-                            </div>
-                         ) : (
-                            <div className="w-10 h-10 bg-slate-50 dark:bg-slate-800 border-2 border-slate-200 dark:border-slate-700 rounded-xl flex items-center justify-center text-slate-300 hover:border-blue-400 hover:text-blue-500 transition-all">
-                               <Circle size={20} strokeWidth={2} />
-                            </div>
-                         )}
-                      </button>
-                   </div>
+                                    {/* Progresso Mensal */}
+                                    <TableCell className="px-4">
+                                        <div className="space-y-1.5">
+                                            <div className="flex justify-between text-xs font-medium">
+                                                <span className="text-slate-500">{completionsMonth}/{daysInMonth}</span>
+                                                <span className="text-blue-600 dark:text-blue-400">{progress}%</span>
+                                            </div>
+                                            <div className="h-2 w-full bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
+                                                <div className="h-full bg-blue-500 transition-all duration-500" style={{ width: `${progress}%` }} />
+                                            </div>
+                                        </div>
+                                    </TableCell>
 
-                   {/* 2. CALENDÁRIO COMPACTO */}
-                   <Link href={`/dashboard/habits/${habit.id}`} className="block mt-auto">
-                       <div className="pt-3 border-t border-slate-100 dark:border-slate-800">
-                          <div className="flex justify-between items-center mb-2">
-                             <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">{capitalizedMonth}</p>
-                             {/* Botão de Apagar (Escondido, aparece no hover) */}
-                             <button onClick={(e) => { e.preventDefault(); deleteHabit(habit.id); }} className="text-slate-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity">
-                                <Trash2 size={14} />
-                             </button>
-                          </div>
-                          
-                          <div className="grid grid-cols-7 gap-1">
-                             {/* Dias da Semana */}
-                             {weekDays.map((d, i) => (
-                                <div key={i} className="text-center text-[9px] font-bold text-slate-300 dark:text-slate-600 mb-0.5">{d}</div>
-                             ))}
-
-                             {/* Espaços Vazios */}
-                             {Array.from({ length: firstDayOfWeek }).map((_, i) => <div key={`e-${i}`} />)}
-
-                             {/* Dias */}
-                             {daysArray.map(day => {
-                                const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`
-                                const isCompleted = habit.history.includes(dateStr)
-                                const isToday = day === currentDay
-                                const isFuture = day > currentDay
-
-                                let cellClass = "bg-slate-50 dark:bg-slate-800 text-slate-300"
-                                if (isCompleted) cellClass = "bg-green-500 text-white shadow-sm"
-                                else if (isToday) cellClass = "bg-white dark:bg-slate-900 text-blue-500 border border-dashed border-blue-400"
-                                else if (isFuture) cellClass = "opacity-30"
-
-                                return (
-                                   <div 
-                                      key={day} 
-                                      className={`aspect-square rounded-[4px] flex items-center justify-center text-[9px] font-bold transition-all ${cellClass}`}
-                                   >
-                                      {day}
-                                   </div>
-                                )
-                             })}
-                          </div>
-                       </div>
-                   </Link>
-                </div>
-             )
-          })}
-          
-          {/* Cartão de "Adicionar Novo" no final do grid */}
-          <button onClick={() => setIsAdding(true)} className="min-h-[200px] rounded-3xl border-2 border-dashed border-slate-200 dark:border-slate-800 hover:border-blue-400 dark:hover:border-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/10 transition-all flex flex-col items-center justify-center group">
-             <div className="w-12 h-12 rounded-full bg-slate-100 dark:bg-slate-800 group-hover:bg-blue-200 dark:group-hover:bg-blue-800 text-slate-400 group-hover:text-blue-600 dark:group-hover:text-white flex items-center justify-center transition-colors mb-3">
-                <Plus size={24} />
-             </div>
-             <span className="text-sm font-bold text-slate-400 group-hover:text-blue-600 dark:group-hover:text-blue-400">Criar Hábito</span>
-          </button>
-
+                                    {/* Ações */}
+                                    <TableCell className="pr-6 text-right">
+                                        <button onClick={() => deleteHabit(habit.id)} className="p-2 text-slate-300 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors opacity-0 group-hover:opacity-100">
+                                            <Trash2 size={16} />
+                                        </button>
+                                    </TableCell>
+                                </TableRow>
+                             )
+                        })}
+                    </TableBody>
+                </Table>
+                
+                {habits.length === 0 && (
+                    <div className="p-12 text-center">
+                        <div className="w-16 h-16 bg-slate-50 dark:bg-slate-800 rounded-full flex items-center justify-center mx-auto mb-4 text-slate-300">
+                            <Calendar size={32} />
+                        </div>
+                        <h3 className="text-slate-900 dark:text-white font-bold text-lg">Sem hábitos ainda</h3>
+                        <p className="text-slate-500 mb-6 max-w-xs mx-auto text-sm">Cria o teu primeiro hábito para começares a ver a magia acontecer.</p>
+                        <Button onClick={() => setIsAdding(true)} variant="outline">Criar Primeiro Hábito</Button>
+                    </div>
+                )}
+            </div>
         </div>
     </div>
   )

@@ -5,6 +5,9 @@ import { Button } from "@/components/ui/button"
 import { ArrowLeft, CalendarDays, Award, Zap, TrendingUp } from "lucide-react"
 import { Card, CardContent } from "@/components/ui/card"
 import { StatsCharts } from "@/components/habit-stats-charts" 
+import { LockScreen } from "@/components/lock-screen"
+import { DashboardSkeleton } from "@/components/dashboard-skeleton"
+import { getUserTier } from "@/app/dashboard/actions" 
 
 export default async function HabitDetailPage({
   params,
@@ -21,6 +24,23 @@ export default async function HabitDetailPage({
     .single()
 
   if (!habit) redirect("/dashboard")
+
+  // PROTECT ROUTE (PRO ONLY)
+  const supabaseAuth = await createClient()
+  const { data: { user } } = await supabaseAuth.auth.getUser()
+  if (user) {
+      const tier = await getUserTier(user.id)
+      if (tier === 'free') {
+          return (
+            <div className="relative min-h-screen">
+                <LockScreen />
+                <div className="filter blur-sm opacity-50 pointer-events-none select-none">
+                    <DashboardSkeleton />
+                </div>
+            </div>
+          )
+      }
+  }
 
   // --- LÓGICA DE STREAK REAL ---
   const calculateStreak = (logs: any[]) => {
@@ -45,8 +65,47 @@ export default async function HabitDetailPage({
     return streak
   }
 
+  // --- LÓGICA DE MELHOR SEQUÊNCIA (BEST STREAK) ---
+  const calculateBestStreak = (logs: any[]) => {
+    const dates = logs.map(l => l.completed_at)
+    // Ordenar cronologicamente para iterar
+    const uniqueDates = [...new Set(dates)].sort((a, b) => new Date(a).getTime() - new Date(b).getTime())
+
+    if (uniqueDates.length === 0) return 0
+
+    let maxStreak = 0
+    let currentStreak = 0
+    let lastDate: Date | null = null
+
+    for (const dateStr of uniqueDates) {
+        const currentDate = new Date(dateStr)
+        
+        if (!lastDate) {
+            currentStreak = 1
+            maxStreak = 1
+        } else {
+            const diffTime = Math.abs(currentDate.getTime() - lastDate.getTime())
+            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
+
+            if (diffDays === 1) {
+                currentStreak++
+            } else {
+                currentStreak = 1
+            }
+            
+            if (currentStreak > maxStreak) {
+                maxStreak = currentStreak
+            }
+        }
+        lastDate = currentDate
+    }
+
+    return maxStreak
+  }
+
   const totalCompletions = habit.habit_logs.length
   const currentStreak = calculateStreak(habit.habit_logs)
+  const bestStreak = calculateBestStreak(habit.habit_logs)
 
   return (
     <div className="space-y-8 pb-20 font-sans max-w-5xl mx-auto">
@@ -91,7 +150,7 @@ export default async function HabitDetailPage({
             </CardContent>
          </Card>
 
-         {/* Streak Atual (AGORA CORRIGIDO) */}
+         {/* Streak Atual */}
          <Card className="rounded-2xl border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm">
             <CardContent className="p-5 flex items-center justify-between h-full">
                 <div>
@@ -106,14 +165,18 @@ export default async function HabitDetailPage({
             </CardContent>
          </Card>
 
-         {/* Métrica Futura */}
-         <Card className="rounded-2xl border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/50 shadow-sm border-dashed">
-            <CardContent className="p-5 flex items-center justify-between h-full text-slate-400">
+         {/* Melhor Sequência (NOVA) */}
+         <Card className="rounded-2xl border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm">
+            <CardContent className="p-5 flex items-center justify-between h-full">
                 <div>
-                    <p className="text-xs font-bold uppercase tracking-wider mb-1">Próxima Métrica</p>
-                    <h3 className="text-lg font-medium">Em breve...</h3>
+                    <p className="text-slate-400 text-xs font-bold uppercase tracking-wider mb-1">Melhor Sequência</p>
+                    <h3 className="text-3xl font-black text-slate-900 dark:text-white flex items-baseline gap-2">
+                        {bestStreak} <span className="text-base font-medium text-slate-400">dias</span>
+                    </h3>
                 </div>
-                <TrendingUp size={24} className="opacity-50" />
+                <div className="bg-green-50 dark:bg-green-900/20 p-3 rounded-xl text-green-600">
+                    <TrendingUp size={24} />
+                </div>
             </CardContent>
          </Card>
       </div>

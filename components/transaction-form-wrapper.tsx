@@ -11,7 +11,20 @@ type Category = {
   type: string
 }
 
-export function TransactionFormWrapper({ categories }: { categories: Category[] }) {
+type Budget = {
+  id: string
+  category: string
+  monthly_limit: string
+  month: string
+}
+
+type TransactionFormWrapperProps = {
+  categories: Category[]
+  budgets: Budget[]
+  currentMonth: string // YYYY-MM-DD (start of month)
+}
+
+export function TransactionFormWrapper({ categories, budgets, currentMonth }: TransactionFormWrapperProps) {
   const [isOpen, setIsOpen] = useState(false)
 
   return (
@@ -27,6 +40,8 @@ export function TransactionFormWrapper({ categories }: { categories: Category[] 
         <TransactionForm
           onClose={() => setIsOpen(false)}
           categories={categories}
+          budgets={budgets}
+          defaultMonth={currentMonth}
         />
       )}
     </>

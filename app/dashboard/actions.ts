@@ -3,15 +3,43 @@
 import { createClient } from "@/lib/supabase-server"
 import { revalidatePath } from "next/cache"
 
+// --- HELPER DE ACESSO ---
+export async function getUserTier(userId: string) {
+  const supabase = await createClient()
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("subscription_tier")
+    .eq("id", userId)
+    .single()
+
+  return profile?.subscription_tier || 'free'
+}
+
 // 1. Criar um novo Hábito
 export async function createHabit(formData: FormData) {
   const supabase = await createClient()
   const title = formData.get("title") as string
-  
+
   if (!title) return
 
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return
+
+  // VERIFICAÇÃO DE LIMITES (FREE = MAX 5)
+  const tier = await getUserTier(user.id)
+  if (tier === 'free') {
+    const { count } = await supabase
+      .from("habits")
+      .select("*", { count: 'exact', head: true })
+      .eq("user_id", user.id)
+
+    if (count && count >= 5) {
+      // Retornar erro ou lidar com UI feedback (por agora silencioso ou toast se implementado)
+      // Idealmente passariamos estado para o cliente mostrando erro.
+      // Como é server action pura, vamos apenas abortar para segurança.
+      return { error: "Limite de 5 hábitos atingido. Faça upgrade." }
+    }
+  }
 
   await supabase.from("habits").insert({
     title,
@@ -29,19 +57,19 @@ export async function deleteHabit(habitId: string) {
 }
 
 // 3. Marcar/Desmarcar como Feito (Toggle)
-export async function toggleHabit(habitId: string) {
+export async function toggleHabit(habitId: string, date?: string) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return
 
-  const today = new Date().toISOString().split("T")[0] // Data formato YYYY-MM-DD
+  const targetDate = date || new Date().toISOString().split("T")[0] // Data específica ou hoje
 
-  // Verifica se já foi feito hoje
+  // Verifica se já foi feito nessa data
   const { data: existingLog } = await supabase
     .from("habit_logs")
     .select("id")
     .eq("habit_id", habitId)
-    .eq("completed_at", today)
+    .eq("completed_at", targetDate)
     .single()
 
   if (existingLog) {
@@ -52,7 +80,7 @@ export async function toggleHabit(habitId: string) {
     await supabase.from("habit_logs").insert({
       habit_id: habitId,
       user_id: user.id,
-      completed_at: today
+      completed_at: targetDate
     })
   }
 

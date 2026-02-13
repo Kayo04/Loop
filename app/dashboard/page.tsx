@@ -1,9 +1,10 @@
 import { redirect } from "next/navigation"
 import { createClient } from "@/lib/supabase-server"
-import { HabitTracker } from "@/components/habit-tracker"
 import { ModeToggle } from "@/components/mode-toggle"
 import { Card, CardContent } from "@/components/ui/card"
-import { TrendingUp, Zap, Calendar, Flame } from "lucide-react"
+import { TrendingUp, Calendar, Flame, CheckCircle } from "lucide-react"
+import { HabitHistory } from "@/components/habit-history"
+import { HabitTracker } from "@/components/habit-tracker"
 
 export default async function Dashboard() {
   const supabase = await createClient()
@@ -52,9 +53,9 @@ export default async function Dashboard() {
   
   let completedTodayCount = 0
   
-  const habits = (habitsData || []).map((habit: any) => {
+  const habits = (habitsData || []).map((habit) => {
     // Extrair histórico (com verificação de segurança)
-    const history = (habit.habit_logs || []).map((log: any) => log.completed_at)
+    const history = (habit.habit_logs || []).map((log) => log.completed_at)
     
     // Verificar se completou hoje
     if (history.includes(today)) {
@@ -67,8 +68,9 @@ export default async function Dashboard() {
     return {
       id: habit.id,
       title: habit.title,
-      streak: realStreak, // <--- Agora usamos o valor calculado
-      history: history
+      streak: realStreak,
+      history: history,
+      createdAt: habit.created_at
     }
   })
 
@@ -76,11 +78,35 @@ export default async function Dashboard() {
   
   // Melhor sequência entre todos os hábitos
   const bestStreak = habits.length > 0 
-    ? Math.max(0, ...habits.map((h: any) => h.streak)) 
+    ? Math.max(0, ...habits.map((h) => h.streak)) 
     : 0
 
   const firstName = profile?.full_name?.split(' ')[0] || "Visitante"
   const currentDate = new Date().toLocaleDateString('pt-PT', { day: 'numeric', month: 'long' })
+
+
+  // --- DATAS DO HABIT TRACKER (Server-Side para evitar Hydration Error) ---
+  const now = new Date()
+  const year = now.getFullYear()
+  const month = now.getMonth()
+  
+  // Mês e dias totais
+  const monthName = now.toLocaleString('pt-PT', { month: 'long' })
+  const daysInMonth = new Date(year, month + 1, 0).getDate()
+
+  // Últimos 7 dias
+  const last7Days = Array.from({ length: 7 }, (_, i) => {
+    const d = new Date()
+    d.setDate(d.getDate() - i)
+    return d
+  }).reverse()
+
+  const weekDays = last7Days.map(date => ({
+      label: date.toLocaleDateString('pt-PT', { weekday: 'narrow' }),
+      dateIso: date.toISOString().split('T')[0],
+      dayUser: date.getDate(),
+      isToday: date.toISOString().split('T')[0] === now.toISOString().split('T')[0]
+  }))
 
   return (
     <div className="space-y-8 pb-10 font-sans">
@@ -99,7 +125,7 @@ export default async function Dashboard() {
       </div>
 
       {/* GRID DE RESUMO */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
           {/* Pontuação */}
           <Card className="col-span-1 md:col-span-1 bg-blue-600 text-white border-none shadow-xl shadow-blue-200 dark:shadow-none rounded-2xl overflow-hidden relative">
             <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full blur-2xl -mr-10 -mt-10 pointer-events-none"></div>
@@ -137,28 +163,36 @@ export default async function Dashboard() {
             </CardContent>
           </Card>
 
-          {/* Foco */}
+          {/* Concluídos Hoje */}
           <Card className="bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 shadow-sm rounded-2xl">
             <CardContent className="p-6 h-full flex flex-col justify-between">
-                 <div className="flex justify-between items-start mb-2">
+                <div className="flex justify-between items-start">
                     <div>
-                        <p className="text-slate-400 text-xs font-bold uppercase tracking-wider">Modo Foco</p>
-                        <h3 className="text-lg font-bold text-slate-900 dark:text-white mt-0.5">Concentração</h3>
+                        <p className="text-slate-400 text-xs font-bold uppercase tracking-wider">Concluídos Hoje</p>
+                        <h3 className="text-4xl font-bold text-slate-900 dark:text-white mt-1 tracking-tight">
+                            {completedTodayCount}<span className="text-xl text-slate-400 font-medium">/{totalHabits}</span>
+                        </h3>
                     </div>
-                    <div className="p-2 bg-indigo-50 dark:bg-indigo-900/20 rounded-lg">
-                        <Zap size={20} className="text-indigo-500" />
+                    <div className="p-2 bg-emerald-50 dark:bg-emerald-900/20 rounded-lg">
+                        <CheckCircle size={20} className="text-emerald-500" />
                     </div>
                 </div>
-                <div className="flex gap-2 mt-auto">
-                    <button className="flex-1 py-2 bg-slate-50 hover:bg-slate-100 dark:bg-slate-800 rounded-lg text-sm font-bold text-slate-700 dark:text-slate-300">25m</button>
-                    <button className="flex-1 py-2 bg-slate-50 hover:bg-slate-100 dark:bg-slate-800 rounded-lg text-sm font-bold text-slate-700 dark:text-slate-300">5m</button>
-                </div>
+                <p className="text-slate-400 text-xs mt-2">Objetivos alcançados.</p>
             </CardContent>
           </Card>
       </div>
 
+      {/* SECÇÃO DO GRÁFICO DE PROGRESSO */}
+      <HabitHistory habits={habits} />
+
       {/* LISTA DE HÁBITOS */}
-      <HabitTracker habits={habits} />
+      <h2 className="text-xl font-bold text-slate-900 dark:text-white mt-8 mb-4">A Tua Lista</h2>
+      <HabitTracker 
+        habits={habits} 
+        weekDays={weekDays} 
+        monthName={monthName} 
+        daysInMonth={daysInMonth} 
+      />
     </div>
   )
 }

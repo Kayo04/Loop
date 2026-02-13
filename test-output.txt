@@ -1,0 +1,10 @@
+Testing fetchStockData for symbols: KO, AAPL
+
+--- KO ---
+[LOG] Please consider completing the survey at https://bit.ly/yahoo-finance-api-feedback if you haven't already; for more info see https://github.com/gadicc/yahoo-finance2/issues/764#issuecomment-2056623851.  This will only be shown once, but you can suppress this message in future with `new YahooFinance({ suppressNotices: ['yahooSurvey'] })`.
+  Price: 78.0499
+  Next Payment Date: 2025-12-15T00:00:00.000Z
+
+--- AAPL ---
+  Price: 273.655
+  Next Payment Date: 2026-02-12T00:00:00.000Z

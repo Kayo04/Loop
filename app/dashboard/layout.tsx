@@ -3,7 +3,7 @@
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
 import { createBrowserClient } from "@supabase/ssr"
-import { LayoutDashboard, Repeat, LogOut, Menu, X, TrendingUp, Sparkles, Wallet } from "lucide-react"
+import { LayoutDashboard, Repeat, LogOut, Menu, X, TrendingUp, Sparkles, Wallet, Zap, Landmark } from "lucide-react"
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { ModeToggle } from "@/components/mode-toggle"
@@ -29,15 +29,18 @@ export default function DashboardLayout({
 
   const navItems = [
     { href: "/dashboard", label: "Visão Geral", icon: LayoutDashboard },
-    { href: "/dashboard/habits", label: "Hábitos", icon: Repeat },
     { href: "/dashboard/finance", label: "Finanças", icon: Wallet },
+    { href: "/dashboard/networth", label: "Património", icon: Landmark }, // Net Worth
+    { href: "/dashboard/investments", label: "Investimentos", icon: TrendingUp },
+    { href: "/dashboard/focus", label: "Foco", icon: Zap },
+    { href: "/dashboard/plans", label: "Planos", icon: Sparkles }, // NEW
   ]
 
   return (
     <div className="flex h-screen bg-[#FAFAFA] dark:bg-[#09090b] transition-colors duration-300 font-sans text-slate-900 dark:text-slate-100">
       
       {/* --- SIDEBAR DESKTOP (EXPANDABLE) --- */}
-      <aside className="hidden md:flex flex-col fixed inset-y-0 z-50 bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800 
+      <aside className="hidden md:flex flex-col fixed inset-y-0 left-0 z-50 bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800 
         w-[88px] hover:w-[280px] transition-all duration-300 ease-in-out group overflow-hidden shadow-sm hover:shadow-2xl">
         
         {/* Logo */}
@@ -96,7 +99,9 @@ export default function DashboardLayout({
                 <Sparkles className="absolute top-2 right-2 text-yellow-400 opacity-50" />
                 <p className="font-bold mb-1 text-sm">Loop Pro</p>
                 <p className="text-[10px] text-slate-300 mb-3 leading-tight">Desbloqueia gráficos avançados.</p>
-                <button className="text-[10px] bg-white text-slate-900 font-bold px-3 py-1.5 rounded-lg w-full hover:bg-slate-100 transition-colors">Ver Planos</button>
+                <Link href="/dashboard/plans">
+                    <button className="text-[10px] bg-white text-slate-900 font-bold px-3 py-1.5 rounded-lg w-full hover:bg-slate-100 transition-colors">Ver Planos</button>
+                </Link>
               </div>
            </div>
 
