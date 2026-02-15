@@ -276,7 +276,7 @@ export function TransactionForm({ onClose, categories, budgets, defaultMonth }: 
                     className="w-full bg-slate-900 hover:bg-slate-800 dark:bg-white dark:hover:bg-slate-200 dark:text-slate-900 text-white font-bold h-14 rounded-xl shadow-lg"
                     disabled={isSubmitting}
                   >
-                    {isSubmitting ? "A guardar..." : "Guardar Transação"}
+                    {isSubmitting ? <><Loader2 className="mr-2 animate-spin" /> A guardar...</> : "Guardar Transação"}
                   </Button>
                 </div>
               </form>

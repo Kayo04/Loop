@@ -99,8 +99,8 @@ export default async function SettingsPage() {
                      <CardDescription>Define a moeda e formato para os teus dados financeiros.</CardDescription>
                   </CardHeader>
                   <CardContent>
-                     <form action={updateProfile} className="flex flex-col md:flex-row gap-4 items-end">
-                        <div className="space-y-2 flex-1 w-full">
+                     <form action={updateProfile} className="flex flex-col gap-6">
+                        <div className="space-y-2 w-full">
                            <Label htmlFor="currency">Moeda Principal</Label>
                            <Select name="currency" defaultValue={currentCurrency}>
                               <SelectTrigger className="w-full bg-slate-50/50 dark:bg-slate-950/50">
@@ -109,15 +109,15 @@ export default async function SettingsPage() {
                               <SelectContent>
                                  <SelectItem value="EUR">🇪🇺 Euro (EUR)</SelectItem>
                                  <SelectItem value="USD">🇺🇸 Dólar Americano (USD)</SelectItem>
-                                 <SelectItem value="GBP">🇬🇧 Libra Esterlina (GBP)</SelectItem>
-                                 <SelectItem value="BRL">🇧🇷 Real Brasileiro (BRL)</SelectItem>
                               </SelectContent>
                            </Select>
                            <p className="text-xs text-muted-foreground">Isto altera o símbolo monetário em todo o dashboard.</p>
                         </div>
-                        <Button type="submit" className="w-full md:w-auto bg-slate-900 dark:bg-white text-white dark:text-slate-900 hover:bg-slate-800">
-                            Atualizar Preferências
-                        </Button>
+                        <div className="flex justify-end w-full">
+                            <Button type="submit" className="w-full md:w-auto bg-slate-900 dark:bg-white text-white dark:text-slate-900 hover:bg-slate-800">
+                                Atualizar Preferências
+                            </Button>
+                        </div>
                      </form>
                   </CardContent>
               </Card>

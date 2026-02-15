@@ -8,8 +8,16 @@ interface NetWorthSummaryProps {
 
 export function NetWorthSummary({ assets }: NetWorthSummaryProps) {
     // 1. Calculate Totals
-    const investments = assets.filter(a => a.type !== 'other')
-    const fixedAssets = assets.filter(a => a.type === 'other')
+    // 1. Calculate Totals
+    // Investments: stock, crypto, etf, fund, reit
+    // Fixed Assets: Real Estate, Vehicle, Cash, other, etc.
+    
+    // We categorize based on what is NOT a fixed asset type
+    const investmentTypes = ['stock', 'crypto', 'etf', 'fund', 'reit']
+    
+    const investments = assets.filter(a => investmentTypes.includes(a.type) || (a.type === 'stock' && !['Real Estate', 'Vehicle', 'Cash', 'Other'].includes(a.type)))
+    // Everything else is fixed
+    const fixedAssets = assets.filter(a => !investmentTypes.includes(a.type))
 
     const totalInvestments = investments.reduce((acc, curr) => acc + (curr.quantity * curr.current_price), 0)
     const totalFixed = fixedAssets.reduce((acc, curr) => acc + (curr.quantity * curr.current_price), 0)

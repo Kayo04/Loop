@@ -1,11 +1,11 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useTransition } from "react"
 import Link from "next/link"
 import { createHabit, toggleHabit, deleteHabit } from "@/app/dashboard/actions"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { CheckCircle2, Circle, Trash2, Plus, Flame, MoreHorizontal, Calendar } from "lucide-react"
+import { CheckCircle2, Circle, Trash2, Plus, Flame, MoreHorizontal, Calendar, Loader2 } from "lucide-react"
 import { Progress } from "@/components/ui/progress"
 import {
   Table,
@@ -39,6 +39,7 @@ type HabitTrackerProps = {
 
 export function HabitTracker({ habits, weekDays, monthName, daysInMonth }: HabitTrackerProps) {
   const [isAdding, setIsAdding] = useState(false)
+  const [isPending, startTransition] = useTransition()
   
   // As datas agora vêm do servidor (page.tsx) para evitar erros de hidratação (Hydration Failure)
   const headers = weekDays
@@ -56,9 +57,16 @@ export function HabitTracker({ habits, weekDays, monthName, daysInMonth }: Habit
 
         {/* Formulário de Adicionar */}
         {isAdding && (
-            <form action={async (formData) => { await createHabit(formData); setIsAdding(false); }} className="p-3 bg-slate-50 dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 flex gap-2 animate-in fade-in slide-in-from-top-2 mb-6">
+            <form action={(formData) => {
+                startTransition(async () => {
+                    await createHabit(formData);
+                    setIsAdding(false);
+                });
+            }} className="p-3 bg-slate-50 dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 flex gap-2 animate-in fade-in slide-in-from-top-2 mb-6">
               <Input name="title" placeholder="Escreve o novo hábito..." autoFocus required className="flex-1 bg-white dark:bg-slate-800 dark:text-white border-0 shadow-sm rounded-xl h-12 text-lg px-4" />
-              <Button type="submit" size="lg" className="h-12 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold px-6">Guardar</Button>
+              <Button type="submit" size="lg" disabled={isPending} className="h-12 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold px-6 min-w-[100px]">
+                  {isPending ? <Loader2 className="w-5 h-5 animate-spin" /> : "Guardar"}
+              </Button>
             </form>
         )}
 

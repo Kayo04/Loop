@@ -7,11 +7,12 @@ import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { Trash2, Building2, TrendingUp, Loader2, Check, ChevronsUpDown, Wallet, PieChart as PieChartIcon } from "lucide-react"
+import { Trash2, Building2, TrendingUp, Loader2, Check, ChevronsUpDown, Wallet, PieChart as PieChartIcon, Home, Car, Banknote, Landmark, CircleDollarSign } from "lucide-react"
 import { useState, useMemo, useEffect } from "react"
 import { createFixedAsset, deleteAsset, previewStockAsset, createAsset } from "@/app/dashboard/investments/actions"
 import { toast } from "sonner"
 import { cn } from "@/lib/utils"
+import { Skeleton } from "@/components/ui/skeleton"
 import {
   Command,
   CommandEmpty,
@@ -96,7 +97,15 @@ export function AssetManager({ assets }: AssetManagerProps) {
             if (result.error || !result.data) {
                 toast.error(result.error || "Ativo não encontrado.")
             } else {
-                setPreviewData(result.data)
+                // Enhance data with local metadata if available
+                const knownAsset = POPULAR_ASSETS.find(a => a.symbol === result.data.symbol)
+                const enhancedData = {
+                    ...result.data,
+                    name: knownAsset?.name || (result.data.name === 'Yahoo Finance' ? result.data.symbol : result.data.name),
+                    type: knownAsset?.type || result.data.type // Trust local type if available
+                }
+                
+                setPreviewData(enhancedData)
                 // If success, ensure symbol state matches
                 if (overrideSymbol) setSymbol(overrideSymbol)
             }
@@ -142,37 +151,63 @@ export function AssetManager({ assets }: AssetManagerProps) {
         toast.success("Ativo removido.")
     }
 
-    const { /*fixedAssets, marketAssets,*/ allAssets, chartData } = useMemo(() => {
+    const { fixedAssets, stockAssets, cryptoAssets, etfAssets, allAssets, chartData } = useMemo(() => {
         // Define Market Types
-        const marketTypes = ['stock', 'crypto', 'etf']
+        const marketTypes = ['stock', 'crypto', 'etf', 'fund']
         
-        const fixed = assets.filter(a => !marketTypes.includes(a.type))
-        const market = assets.filter(a => marketTypes.includes(a.type))
+        const fixed = []
+        const stocks = []
+        const crypto = []
+        const etfs = []
+
+        // Grouping Logic with client-side inference for legacy data
+        for (const a of assets) {
+            if (marketTypes.includes(a.type) || (a.symbol && ['stock','crypto','etf'].includes(a.type))) {
+                // It's a market asset
+                let type = a.type;
+                // Inference Fallback if type is generic 'stock'
+                if (type === 'stock') {
+                    if (a.symbol.includes('-USD') || a.symbol.startsWith('BTC') || a.symbol.startsWith('ETH')) type = 'crypto';
+                    else if (['SPY', 'VOO', 'QQQ', 'IVV', 'VWCE'].includes(a.symbol)) type = 'etf';
+                }
+
+                if (type === 'crypto') crypto.push(a);
+                else if (type === 'etf' || type === 'fund') etfs.push(a);
+                else stocks.push(a); // Default to stock
+            } else {
+                fixed.push(a);
+            }
+        }
         
         // Prepare chart data
         const dataMap = new Map<string, number>()
         
-        // Add Fixed Assets to Chart
+        // Add Fixed
         fixed.forEach(a => {
-            const cat = getCategoryLabel(a.type) // Use type as category
+            const cat = getCategoryLabel(a.type)
             const val = dataMap.get(cat) || 0
             dataMap.set(cat, val + a.current_price)
         })
 
-        // Add Market Assets to Chart
-        market.forEach(a => {
-            const cat = a.symbol ? 'Stocks/Crypto' : 'Investimentos'
-            const val = dataMap.get(cat) || 0
-            const totalValue = a.quantity ? a.current_price * a.quantity : a.current_price
-            dataMap.set(cat, val + totalValue)
+        // Add Market
+        stocks.forEach(a => dataMap.set('Ações', (dataMap.get('Ações') || 0) + (a.current_price * a.quantity)))
+        crypto.forEach(a => dataMap.set('Cripto', (dataMap.get('Cripto') || 0) + (a.current_price * a.quantity)))
+        etfs.forEach(a => dataMap.set('ETFs', (dataMap.get('ETFs') || 0) + (a.current_price * a.quantity)))
+
+        const totalChartValue = Array.from(dataMap.values()).reduce((a, b) => a + b, 0)
+
+        const chart = Array.from(dataMap.entries()).map(([name, value]) => {
+            const percentage = totalChartValue > 0 ? (value / totalChartValue) * 100 : 0
+            return { 
+                name: `${name} (${percentage.toFixed(1)}%)`, // Add percentage to name for Legend
+                value 
+            }
         })
 
-        const chart = Array.from(dataMap.entries()).map(([name, value]) => ({ name, value }))
+        // Prepare Unified List for total calc
+        const all = [...fixed, ...stocks, ...crypto, ...etfs].sort((a,b) => (b.updated_at || "").localeCompare(a.updated_at || ""))
 
-        // Prepare Unified List
-        const all = [...fixed, ...market].sort((a,b) => (b.updated_at || "").localeCompare(a.updated_at || ""))
-
-        return { fixedAssets: fixed, marketAssets: market, allAssets: all, chartData: chart }
+        return { fixedAssets: fixed, stockAssets: stocks, cryptoAssets: crypto, etfAssets: etfs, allAssets: all, chartData: chart }
     }, [assets])
 
     const totalNetWorth = allAssets.reduce((acc, curr) => {
@@ -180,6 +215,11 @@ export function AssetManager({ assets }: AssetManagerProps) {
         return acc + val
     }, 0)
 
+
+    // Helper to strip currency suffixes from display
+    const formatDisplaySymbol = (symbol: string) => {
+        return symbol.replace(/-USD$/, '').replace(/-EUR$/, '')
+    }
 
     return (
         <div className="space-y-8">
@@ -290,7 +330,7 @@ export function AssetManager({ assets }: AssetManagerProps) {
                                                         aria-expanded={openCombobox}
                                                         className="w-full justify-between font-normal"
                                                     >
-                                                        {symbol ? symbol : "Procurar..."}
+                                                        {symbol ? formatDisplaySymbol(symbol) : "Procurar..."}
                                                         <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                                                     </Button>
                                                 </PopoverTrigger>
@@ -322,8 +362,8 @@ export function AssetManager({ assets }: AssetManagerProps) {
                                                                     </Button>
                                                                 </div>
                                                             </CommandEmpty>
-                                                            <CommandGroup heading="Sugestões">
-                                                                {POPULAR_ASSETS.map((asset) => (
+                                                            <CommandGroup heading="Ações">
+                                                                {POPULAR_ASSETS.filter(a => a.type === 'stock').map((asset) => (
                                                                      <CommandItem
                                                                         key={asset.symbol}
                                                                         value={asset.name + " " + asset.symbol} 
@@ -334,7 +374,41 @@ export function AssetManager({ assets }: AssetManagerProps) {
                                                                         }}
                                                                     >
                                                                         <Check className={cn("mr-2 h-4 w-4", symbol === asset.symbol ? "opacity-100" : "opacity-0")} />
-                                                                        <span className="font-bold w-16">{asset.symbol}</span>
+                                                                        <span className="font-bold w-16">{formatDisplaySymbol(asset.symbol)}</span>
+                                                                        <span className="text-muted-foreground truncate">{asset.name}</span>
+                                                                    </CommandItem>
+                                                                ))}
+                                                            </CommandGroup>
+                                                            <CommandGroup heading="Criptomoedas">
+                                                                {POPULAR_ASSETS.filter(a => a.type === 'crypto').map((asset) => (
+                                                                     <CommandItem
+                                                                        key={asset.symbol}
+                                                                        value={asset.name + " " + asset.symbol} 
+                                                                        onSelect={() => {
+                                                                            setSymbol(asset.symbol)
+                                                                            setOpenCombobox(false)
+                                                                            handlePreview(asset.symbol)
+                                                                        }}
+                                                                    >
+                                                                        <Check className={cn("mr-2 h-4 w-4", symbol === asset.symbol ? "opacity-100" : "opacity-0")} />
+                                                                        <span className="font-bold w-16">{formatDisplaySymbol(asset.symbol)}</span>
+                                                                        <span className="text-muted-foreground truncate">{asset.name}</span>
+                                                                    </CommandItem>
+                                                                ))}
+                                                            </CommandGroup>
+                                                            <CommandGroup heading="ETFs & Fundos">
+                                                                {POPULAR_ASSETS.filter(a => a.type === 'etf').map((asset) => (
+                                                                     <CommandItem
+                                                                        key={asset.symbol}
+                                                                        value={asset.name + " " + asset.symbol} 
+                                                                        onSelect={() => {
+                                                                            setSymbol(asset.symbol)
+                                                                            setOpenCombobox(false)
+                                                                            handlePreview(asset.symbol)
+                                                                        }}
+                                                                    >
+                                                                        <Check className={cn("mr-2 h-4 w-4", symbol === asset.symbol ? "opacity-100" : "opacity-0")} />
+                                                                        <span className="font-bold w-16">{formatDisplaySymbol(asset.symbol)}</span>
                                                                         <span className="text-muted-foreground truncate">{asset.name}</span>
                                                                     </CommandItem>
                                                                 ))}
@@ -346,8 +420,26 @@ export function AssetManager({ assets }: AssetManagerProps) {
                                         </div>
                                      </div>
 
-                                    {/* PREVIEW */}
-                                    {previewData && (
+                                    {/* PREVIEW LOADING SKELETON */}
+                                    {isPreviewLoading && (
+                                        <div className="bg-slate-50 dark:bg-slate-900/50 rounded-lg p-3 space-y-3 border border-slate-100 dark:border-slate-800 animate-in fade-in slide-in-from-top-2">
+                                            <div className="flex items-center gap-3">
+                                                <Skeleton className="w-8 h-8 rounded-full" />
+                                                <div className="min-w-0 flex-1 space-y-1">
+                                                    <Skeleton className="h-4 w-24" />
+                                                    <Skeleton className="h-3 w-16" />
+                                                </div>
+                                            </div>
+                                            <div className="flex justify-between items-center pt-2 border-t border-slate-200 dark:border-slate-800">
+                                                <Skeleton className="h-4 w-20" />
+                                                <Skeleton className="h-4 w-16" />
+                                            </div>
+                                            <Skeleton className="h-9 w-full rounded-md" />
+                                        </div>
+                                    )}
+
+                                    {/* PREVIEW DATA (Only show if NOT loading) */}
+                                    {!isPreviewLoading && previewData && (
                                         <div className="bg-slate-50 dark:bg-slate-900/50 rounded-lg p-3 space-y-3 border border-slate-100 dark:border-slate-800 animate-in fade-in slide-in-from-top-2">
                                             <div className="flex items-center gap-3">
                                                  <div className="w-8 h-8 rounded-full bg-blue-100 dark:bg-blue-900/20 flex items-center justify-center font-bold text-[10px] text-blue-600">
@@ -369,7 +461,7 @@ export function AssetManager({ assets }: AssetManagerProps) {
                                                 </span>
                                             </div>
                                             <Button type="submit" size="sm" className="w-full bg-blue-600 hover:bg-blue-700 text-white" disabled={isLoading}>
-                                                Confirmar Investimento
+                                                {isLoading ? <div className="flex items-center gap-2"><Loader2 className="w-4 h-4 animate-spin" /> Processando...</div> : "Confirmar Investimento"}
                                             </Button>
                                         </div>
                                     )}
@@ -429,100 +521,162 @@ export function AssetManager({ assets }: AssetManagerProps) {
                 </Card>
             </div>
 
-            {/* BOTTOM: UNIFIED TABLE */}
-             <Card className="border-none shadow-lg bg-card/50 backdrop-blur-sm">
-                <CardHeader>
-                    <CardTitle>Todos os Ativos</CardTitle>
-                    <CardDescription>Lista completa do teu património e investimentos.</CardDescription>
-                </CardHeader>
-                <CardContent>
-                    <Table>
-                        <TableHeader>
-                            <TableRow>
-                                <TableHead>Nome / Símbolo</TableHead>
-                                <TableHead>Tipo</TableHead>
-                                <TableHead className="text-right">Qtd.</TableHead>
-                                <TableHead className="text-right">Valor Unit.</TableHead>
-                                <TableHead className="text-right">Valor Total</TableHead>
-                                <TableHead className="w-[50px]"></TableHead>
-                            </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                            {allAssets.length === 0 ? (
-                                <TableRow>
-                                    <TableCell colSpan={6} className="text-center h-24 text-muted-foreground">
-                                        Ainda não tens ativos registados.
+            {/* ASSET GROUPS */}
+            <div className="space-y-8">
+                
+                {/* 1. FIXED ASSETS */}
+                {fixedAssets.length > 0 && (
+                    <AssetGroupSection 
+                        title="Ativos Fixos" 
+                        description="Imobiliário, Veículos e Dinheiro."
+                        icon={<Building2 className="w-5 h-5 text-purple-500" />}
+                        assets={fixedAssets}
+                        onDelete={handleDelete}
+                        type="fixed"
+                    />
+                )}
+
+                {/* 2. STOCKS */}
+                {stockAssets.length > 0 && (
+                    <AssetGroupSection 
+                        title="Ações" 
+                        description="Participações em empresas."
+                        icon={<TrendingUp className="w-5 h-5 text-blue-500" />}
+                        assets={stockAssets}
+                        onDelete={handleDelete}
+                        type="stock"
+                    />
+                )}
+
+                {/* 3. ETFs */}
+                {etfAssets.length > 0 && (
+                    <AssetGroupSection 
+                        title="ETFs & Fundos" 
+                        description="Fundos de investimento diversificados."
+                        icon={<PieChartIcon className="w-5 h-5 text-orange-500" />}
+                        assets={etfAssets}
+                        onDelete={handleDelete}
+                        type="etf"
+                    />
+                )}
+
+                {/* 4. CRYPTO */}
+                {cryptoAssets.length > 0 && (
+                    <AssetGroupSection 
+                        title="Criptomoedas" 
+                        description="Ativos digitais e blockchain."
+                        icon={<Wallet className="w-5 h-5 text-emerald-500" />}
+                        assets={cryptoAssets}
+                        onDelete={handleDelete}
+                        type="crypto"
+                    />
+                )}
+
+                {/* EMPTY STATE */}
+                {allAssets.length === 0 && (
+                    <Card className="border-none shadow-lg bg-card/50 backdrop-blur-sm p-12 text-center">
+                        <div className="mx-auto w-16 h-16 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center mb-4">
+                            <Wallet className="w-8 h-8 text-muted-foreground" />
+                        </div>
+                        <h3 className="text-xl font-bold mb-2">Sem ativos registados</h3>
+                        <p className="text-muted-foreground">Adiciona o teu primeiro ativo para começares a acompanhar o teu património.</p>
+                    </Card>
+                )}
+            </div>
+        </div>
+    )
+}
+
+function AssetGroupSection({ title, description, icon, assets, onDelete, type }: any) {
+    return (
+        <Card className="border-none shadow-lg bg-card/50 backdrop-blur-sm overflow-hidden">
+            <CardHeader className="border-b border-slate-100 dark:border-slate-800/50 bg-slate-50/50 dark:bg-slate-900/20">
+                <div className="flex items-center gap-3">
+                    <div className="p-2 rounded-lg bg-white dark:bg-slate-800 shadow-sm">
+                        {icon}
+                    </div>
+                    <div>
+                        <CardTitle className="text-lg">{title}</CardTitle>
+                        <CardDescription>{description}</CardDescription>
+                    </div>
+                </div>
+            </CardHeader>
+            <CardContent className="p-0">
+                <Table>
+                    <TableHeader>
+                        <TableRow className="hover:bg-transparent">
+                            <TableHead className="pl-6">Nome / Símbolo</TableHead>
+                            <TableHead>Categoria</TableHead>
+                            <TableHead className="text-right">Qtd.</TableHead>
+                            <TableHead className="text-right">Preço Atual</TableHead>
+                            <TableHead className="text-right pr-6">Valor Total</TableHead>
+                            <TableHead className="w-[50px]"></TableHead>
+                        </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                        {assets.map((asset: any) => {
+                             const isFixed = type === 'fixed';
+                             const quantity = asset.quantity || 1;
+                             const totalVal = quantity * asset.current_price;
+
+                             return (
+                                <TableRow key={asset.id} className="group hover:bg-slate-50/50 dark:hover:bg-slate-800/50">
+                                    <TableCell className="pl-6 font-medium">
+                                        <div className="flex items-center gap-3">
+                                            {/* Icon based on specific type if needed, or generic */}
+                                            {asset.image_url ? (
+                                                <img src={asset.image_url} alt={asset.symbol} className="w-8 h-8 rounded-full object-cover bg-white shadow-sm" onError={(e) => e.currentTarget.style.display = 'none'} />
+                                            ) : isFixed ? (
+                                                <div className="w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-500">
+                                                     {getCategoryIcon(asset.type)}
+                                                </div>
+                                            ) : (
+                                                <div className="w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-xs font-bold text-slate-500">
+                                                    {asset.symbol ? asset.symbol.substring(0, 2) : asset.name.substring(0, 2)}
+                                                </div>
+                                            )}
+                                            
+                                            <div>
+                                                <div className="font-bold text-foreground">
+                                                    {isFixed ? asset.name : asset.symbol}
+                                                </div>
+                                                <div className="text-xs text-muted-foreground w-32 truncate" title={asset.name}>
+                                                    {isFixed ? getCategoryLabel(asset.type) : asset.name}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </TableCell>
+                                    <TableCell>
+                                        <span className="px-2 py-1 rounded-full text-xs font-medium bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400">
+                                            {isFixed ? getCategoryLabel(asset.type) : (asset.type === 'crypto' ? 'Cripto' : asset.type === 'etf' ? 'ETF' : 'Ação')}
+                                        </span>
+                                    </TableCell>
+                                    <TableCell className="text-right font-mono text-sm">
+                                        {isFixed ? "1" : quantity}
+                                    </TableCell>
+                                    <TableCell className="text-right font-mono text-sm text-muted-foreground">
+                                        {isFixed ? "-" : new Intl.NumberFormat('pt-PT', { style: 'currency', currency: asset.currency || 'EUR' }).format(asset.current_price)}
+                                    </TableCell>
+                                    <TableCell className="text-right font-bold font-mono text-base pr-6 text-foreground">
+                                        {new Intl.NumberFormat('pt-PT', { style: 'currency', currency: asset.currency || 'EUR' }).format(totalVal)}
+                                    </TableCell>
+                                    <TableCell>
+                                        <Button 
+                                            variant="ghost" 
+                                            size="icon" 
+                                            className="h-8 w-8 text-neutral-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/20 transition-all opacity-0 group-hover:opacity-100"
+                                            onClick={() => onDelete(asset.id)}
+                                        >
+                                            <Trash2 className="w-4 h-4" />
+                                        </Button>
                                     </TableCell>
                                 </TableRow>
-                            ) : (
-                                allAssets.map((asset) => {
-                                    const marketTypes = ['stock', 'crypto', 'etf']
-                                    const isFixed = !marketTypes.includes(asset.type)
-                                    const quantity = asset.quantity || 1;
-                                    const totalVal = quantity * asset.current_price;
-
-                                    return (
-                                        <TableRow key={asset.id} className="group">
-                                            <TableCell className="font-medium">
-                                                <div className="flex items-center gap-3">
-                                                    <div className={cn(
-                                                        "w-8 h-8 rounded-full flex items-center justify-center",
-                                                        isFixed ? "bg-purple-100 dark:bg-purple-900/30 text-purple-600" : "bg-blue-100 dark:bg-blue-900/30 text-blue-600"
-                                                    )}>
-                                                        {isFixed ? <Building2 className="w-4 h-4" /> : <TrendingUp className="w-4 h-4" />}
-                                                    </div>
-                                                    <div>
-                                                        {/* FIXED ASSETS: Show Name (Subtitle: Symbol or HIDDEN) */}
-                                                        {isFixed ? (
-                                                            <>
-                                                                <div>{asset.name}</div>
-                                                                {/* <div className="text-xs text-muted-foreground">Ativo Fixo</div> */}
-                                                            </>
-                                                        ) : (
-                                                            <>
-                                                                <div>{asset.symbol}</div>
-                                                                <div className="text-xs text-muted-foreground">{asset.name}</div>
-                                                            </>
-                                                        )}
-                                                    </div>
-                                                </div>
-                                            </TableCell>
-                                            <TableCell>
-                                                <span className={cn(
-                                                    "px-2 py-1 rounded-full text-xs font-medium",
-                                                    isFixed ? "bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300" : "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300"
-                                                )}>
-                                                    {isFixed ? getCategoryLabel(asset.type) : (asset.type === 'crypto' ? 'Cripto' : 'Ação')}
-                                                </span>
-                                            </TableCell>
-                                            <TableCell className="text-right font-mono">
-                                                {isFixed ? "1" : quantity}
-                                            </TableCell>
-                                            <TableCell className="text-right text-muted-foreground font-mono">
-                                                {isFixed ? "-" : new Intl.NumberFormat('pt-PT', { style: 'currency', currency: 'EUR' }).format(asset.current_price)}
-                                            </TableCell>
-                                            <TableCell className="text-right font-bold font-mono">
-                                                {new Intl.NumberFormat('pt-PT', { style: 'currency', currency: 'EUR' }).format(totalVal)}
-                                            </TableCell>
-                                            <TableCell>
-                                                <Button 
-                                                    variant="ghost" 
-                                                    size="icon" 
-                                                    className="h-8 w-8 text-neutral-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/20 transition-all opacity-0 group-hover:opacity-100"
-                                                    onClick={() => handleDelete(asset.id)}
-                                                >
-                                                    <Trash2 className="w-4 h-4" />
-                                                </Button>
-                                            </TableCell>
-                                        </TableRow>
-                                    )
-                                })
-                            )}
-                        </TableBody>
-                    </Table>
-                </CardContent>
-            </Card>
-        </div>
+                             )
+                        })}
+                    </TableBody>
+                </Table>
+            </CardContent>
+        </Card>
     )
 }
 
@@ -535,3 +689,20 @@ function getCategoryLabel(cat: string) {
     }
     return map[cat] || cat
 }
+
+function getCategoryIcon(cat: string) {
+    switch (cat) {
+        case 'Real Estate':
+        case 'Imobiliário':
+            return <Home className="w-4 h-4 text-blue-500" />;
+        case 'Vehicle':
+        case 'Veículo':
+            return <Car className="w-4 h-4 text-orange-500" />;
+        case 'Cash':
+        case 'Dinheiro':
+            return <Banknote className="w-4 h-4 text-green-500" />;
+        default:
+            return <CircleDollarSign className="w-4 h-4 text-slate-500" />;
+    }
+}
+

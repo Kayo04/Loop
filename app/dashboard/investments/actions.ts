@@ -147,11 +147,17 @@ export async function createAsset(formData: FormData) {
     // ALWAYS FETCH DATA to get latest metadata in USER CURRENCY
     const stockData = await fetchStockData(symbol, userCurrency)
 
+    let finalType = type;
     if (stockData) {
         if (!current_price) current_price = stockData.price
         if (!buy_price) buy_price = stockData.price
         if (!annual_dividend_per_share) annual_dividend_per_share = stockData.annualDividendRate
         if (stockData.nextPaymentDate) next_payment_date = stockData.nextPaymentDate
+
+        // Use the type from stock service if it's more specific than generic "stock"
+        if (stockData.type && stockData.type !== 'other') {
+            finalType = stockData.type;
+        }
     }
 
     // CHECK FOR EXISTING ASSET
@@ -179,7 +185,10 @@ export async function createAsset(formData: FormData) {
                 current_price: current_price || existingAsset.current_price,
                 annual_dividend_per_share: annual_dividend_per_share || existingAsset.annual_dividend_per_share,
                 next_payment_date: next_payment_date || existingAsset.next_payment_date,
-                updated_at: new Date().toISOString()
+                updated_at: new Date().toISOString(),
+                // Update type if we have a better one now
+                type: finalType !== existingAsset.type ? finalType : existingAsset.type,
+                currency: userCurrency // Always enforce current user currency
             })
             .eq("id", existingAsset.id)
 
@@ -190,7 +199,7 @@ export async function createAsset(formData: FormData) {
             user_id: user.id,
             symbol,
             name: name || (stockData?.name ?? symbol),
-            type,
+            type: finalType,
             quantity,
             buy_price: buy_price || 0,
             current_price: current_price || 0,
@@ -252,7 +261,7 @@ export async function createAssetsBulk(data: string) {
         itemsToProcess.push({
             symbol,
             name,
-            type: 'stock',
+            type: (stockData?.type && stockData.type !== 'other') ? stockData.type : 'stock',
             quantity,
             buy_price,
             current_price,
@@ -302,7 +311,8 @@ export async function createAssetsBulk(data: string) {
                 current_price: item.current_price || existingAsset.current_price,
                 annual_dividend_per_share: item.annual_dividend_per_share || existingAsset.annual_dividend_per_share,
                 next_payment_date: item.next_payment_date || existingAsset.next_payment_date,
-                updated_at: new Date().toISOString()
+                updated_at: new Date().toISOString(),
+                currency: item.currency // Enforce currency update
             }).eq("id", existingAsset.id)
         } else {
             // Insert
@@ -394,6 +404,7 @@ export async function refreshAllAssets() {
         if (stockData) {
             await supabase.from("assets").update({
                 current_price: stockData.price,
+                currency: stockData.currency, // Force update currency symbol to match user preference
                 annual_dividend_per_share: stockData.annualDividendRate,
                 next_payment_date: stockData.nextPaymentDate,
                 updated_at: new Date().toISOString()
