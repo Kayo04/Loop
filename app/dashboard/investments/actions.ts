@@ -46,8 +46,12 @@ export async function previewStockAsset(symbol: string) {
 
     if (!symbol) return { error: "Símbolo obrigatório" }
 
+    // Fetch user currency preference
+    const { data: profile } = await supabase.from("profiles").select("currency").eq("id", user.id).single()
+    const userCurrency = profile?.currency || 'EUR'
+
     try {
-        const data = await fetchStockData(symbol)
+        const data = await fetchStockData(symbol, userCurrency)
         console.log("Server Action: fetchStockData result:", data ? "Success" : "Null")
         if (!data) return { error: "Ativo não encontrado ou erro ao obter cotação." }
         return { success: true, data }
@@ -67,6 +71,10 @@ export async function createFixedAsset(formData: FormData) {
     const value = parseFloat(formData.get("value") as string)
     const category = formData.get("category") as string // Real Estate, Vehicle, etc.
 
+    // Fetch user currency preference
+    const { data: profile } = await supabase.from("profiles").select("currency").eq("id", user.id).single()
+    const userCurrency = profile?.currency || 'EUR'
+
     if (!name || isNaN(value)) {
         return { error: "Nome e Valor são obrigatórios." }
     }
@@ -82,7 +90,7 @@ export async function createFixedAsset(formData: FormData) {
         quantity: 1,
         buy_price: value,
         current_price: value,
-        currency: 'EUR',
+        currency: userCurrency,
         annual_dividend_per_share: 0,
     })
 
@@ -114,14 +122,12 @@ export async function createAsset(formData: FormData) {
         return { error: "Símbolo, Tipo e Quantidade são obrigatórios." }
     }
 
-    // VERIFICAÇÃO DE LIMITES (FREE = MAX 3)
-    // Import getUserTier if possible, OR re-implement query here to avoid circular dep if actions import each other?
-    // Let's assume we can import it or duplicate logic safely.
-    // Ideally we duplicate simple logic to avoid complex imports if needed, or better, import it.
-    // Since getUserTier is in ../actions.ts, we can try importing.
-    // If circular dependency issues arise, we will fix.
+    // Fetch user currency preference
+    const { data: profile } = await supabase.from("profiles").select("currency, subscription_tier").eq("id", user.id).single()
+    const userCurrency = profile?.currency || 'EUR'
+    const tier = profile?.subscription_tier || 'free'
 
-    // Check existing count (for INSERT only)
+    // VERIFICAÇÃO DE LIMITES
     const { data: existingAssetCheck } = await supabase
         .from("assets")
         .select("id")
@@ -130,10 +136,6 @@ export async function createAsset(formData: FormData) {
         .single()
 
     if (!existingAssetCheck) {
-        // It's a new asset, check limit
-        const { data: profile } = await supabase.from("profiles").select("subscription_tier").eq("id", user.id).single()
-        const tier = profile?.subscription_tier || 'free'
-
         if (tier === 'free') {
             const { count } = await supabase.from("assets").select("*", { count: 'exact', head: true }).eq("user_id", user.id)
             if (count && count >= 3) {
@@ -142,8 +144,8 @@ export async function createAsset(formData: FormData) {
         }
     }
 
-    // ALWAYS FETCH DATA to get latest metadata
-    const stockData = await fetchStockData(symbol)
+    // ALWAYS FETCH DATA to get latest metadata in USER CURRENCY
+    const stockData = await fetchStockData(symbol, userCurrency)
 
     if (stockData) {
         if (!current_price) current_price = stockData.price
@@ -193,7 +195,8 @@ export async function createAsset(formData: FormData) {
             buy_price: buy_price || 0,
             current_price: current_price || 0,
             annual_dividend_per_share: annual_dividend_per_share || 0,
-            next_payment_date
+            next_payment_date,
+            currency: userCurrency // Save currency!
         })
 
         if (error) return { error: error.message }
@@ -210,6 +213,11 @@ export async function createAssetsBulk(data: string) {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return { error: "Not authenticated" }
 
+    // Fetch user currency preference
+    const { data: profile } = await supabase.from("profiles").select("currency, subscription_tier").eq("id", user.id).single()
+    const userCurrency = profile?.currency || 'EUR'
+    const tier = profile?.subscription_tier || 'free'
+
     const lines = data.split('\n').filter(line => line.trim().length > 0)
     const itemsToProcess = []
 
@@ -225,8 +233,8 @@ export async function createAssetsBulk(data: string) {
         let current_price = parseFloat(parts[2] || "0")
         let annual_dividend_per_share = parseFloat(parts[3] || "0")
 
-        // Fetch fresh data
-        const stockData = await fetchStockData(symbol)
+        // Fetch fresh data in USER CURRENCY
+        const stockData = await fetchStockData(symbol, userCurrency)
 
         let next_payment_date = null
         let name = symbol
@@ -249,7 +257,8 @@ export async function createAssetsBulk(data: string) {
             buy_price,
             current_price,
             annual_dividend_per_share,
-            next_payment_date
+            next_payment_date,
+            currency: userCurrency
         })
     }
 
@@ -258,9 +267,6 @@ export async function createAssetsBulk(data: string) {
     }
 
     // VERIFICAÇÃO DE LIMITES (FREE = MAX 3)
-    const { data: profile } = await supabase.from("profiles").select("subscription_tier").eq("id", user.id).single()
-    const tier = profile?.subscription_tier || 'free'
-
     if (tier === 'free') {
         const { count } = await supabase.from("assets").select("*", { count: 'exact', head: true }).eq("user_id", user.id)
         const currentCount = count || 0
@@ -370,12 +376,21 @@ export async function refreshAllAssets() {
     if (error) return { error: error.message }
     if (!assets || assets.length === 0) return { success: true }
 
+    // Fetch user currency preference
+    const { data: profile } = await supabase.from("profiles").select("currency").eq("id", user.id).single()
+    const userCurrency = profile?.currency || 'EUR'
+
     // 2. Refresh each in parallel (with limit)
     let updatedCount = 0;
 
     // Process in chunks to avoid rate limits if many assets
     const updates = assets.map(async (asset) => {
-        const stockData = await fetchStockData(asset.symbol);
+        // Skip fixed assets if we want? Or update them too? 
+        // Fixed assets usually don't have symbols like 'FIXED_...' that work in Yahoo.
+        // Let's soft check symbol.
+        if (asset.symbol.startsWith("FIXED_")) return;
+
+        const stockData = await fetchStockData(asset.symbol, userCurrency);
         if (stockData) {
             await supabase.from("assets").update({
                 current_price: stockData.price,

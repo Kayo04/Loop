@@ -86,3 +86,24 @@ export async function toggleHabit(habitId: string, date?: string) {
 
   revalidatePath("/dashboard")
 }
+
+// 4. Update Profile (Currency, etc.)
+export async function updateProfile(formData: FormData) {
+  "use server" // Ensure it's treated as a server action if called directly
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return
+
+  const currency = formData.get("currency") as string
+
+  if (currency) {
+    await supabase
+      .from("profiles")
+      .update({ currency })
+      .eq("id", user.id)
+  }
+
+  revalidatePath("/dashboard")
+  revalidatePath("/dashboard/settings")
+  return { success: true }
+}
