@@ -5,10 +5,12 @@ import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Input } from "@/components/ui/input"
-import { User, CreditCard, Globe, LogOut, Loader2, Sparkles, ShieldCheck, Mail, Wallet } from "lucide-react"
+import { User, CreditCard, Globe, LogOut, Loader2, Sparkles, ShieldCheck, Mail, Wallet, Calendar, MessageSquare } from "lucide-react"
 import { updateProfile } from "../actions"
 import { toast } from "sonner"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { CancelSubscriptionDialog } from "@/components/cancel-subscription-dialog"
+import Link from "next/link"
 
 export const metadata = {
   title: "Definições | Loop Finance",
@@ -28,7 +30,29 @@ export default async function SettingsPage() {
 
   const currentTier = profile?.subscription_tier || 'free'
   const currentCurrency = profile?.currency || 'EUR'
+  const subscriptionStatus = profile?.subscription_status || 'free'
+  const billingCycle = profile?.billing_cycle || 'monthly'
+  const subscriptionStartDate = profile?.subscription_start_date
   const initials = profile?.full_name?.split(' ').map((n: string) => n[0]).join('').substring(0, 2).toUpperCase() || "U"
+
+  // Calculate next billing date
+  const getNextBillingDate = () => {
+    if (!subscriptionStartDate || currentTier === 'free') return null
+    const startDate = new Date(subscriptionStartDate)
+    const today = new Date()
+    const monthsToAdd = billingCycle === 'yearly' ? 12 : 1
+    
+    let nextBilling = new Date(startDate)
+    while (nextBilling < today) {
+      nextBilling.setMonth(nextBilling.getMonth() + monthsToAdd)
+    }
+    return nextBilling
+  }
+
+  const nextBillingDate = getNextBillingDate()
+  const formattedNextBilling = nextBillingDate 
+    ? nextBillingDate.toLocaleDateString('pt-PT', { day: 'numeric', month: 'long', year: 'numeric' })
+    : null
 
   return (
     <div className="flex flex-col gap-8 pb-10 max-w-5xl mx-auto animate-in fade-in slide-in-from-bottom-4 duration-500">
@@ -170,13 +194,48 @@ export default async function SettingsPage() {
                             <span>Multi-moeda</span>
                         </div>
                     </div>
+
+                    {currentTier === 'pro' && formattedNextBilling && subscriptionStatus === 'active' && (
+                        <div className="pt-4 border-t border-white/10 space-y-3">
+                            <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-2 text-sm text-slate-300">
+                                    <Calendar className="w-4 h-4" />
+                                    <span>Próxima Cobrança</span>
+                                </div>
+                                <span className="font-semibold text-white">{formattedNextBilling}</span>
+                            </div>
+                            <div className="flex items-center justify-between">
+                                <span className="text-sm text-slate-300">Ciclo de Faturação</span>
+                                <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-white/10 backdrop-blur-sm rounded-full text-xs font-bold text-white border border-white/20">
+                                    {billingCycle === 'yearly' ? (
+                                        <>
+                                            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                            </svg>
+                                            Anual
+                                        </>
+                                    ) : (
+                                        <>
+                                            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                            </svg>
+                                            Mensal
+                                        </>
+                                    )}
+                                </span>
+                            </div>
+                        </div>
+                    )}
                 </CardContent>
 
-                <CardFooter>
-                    {currentTier === 'pro' ? (
-                        <Button variant="secondary" className="w-full bg-white/10 hover:bg-white/20 border border-white/10 text-white">
-                            Gerir Assinatura
-                        </Button>
+                <CardFooter className="flex-col gap-2">
+                    {currentTier === 'pro' && subscriptionStatus === 'active' ? (
+                        <CancelSubscriptionDialog />
+                    ) : currentTier === 'pro' && subscriptionStatus === 'cancelled' ? (
+                        <div className="w-full text-center py-2">
+                            <div className="text-sm text-slate-300">Subscrição cancelada</div>
+                            <div className="text-xs text-slate-400 mt-1">Acesso até {formattedNextBilling}</div>
+                        </div>
                     ) : (
                         <Button className="w-full bg-gradient-to-r from-purple-600 to-blue-600 hover:opacity-90 transition-opacity border-0" asChild>
                             <a href="/dashboard/plans">
@@ -189,12 +248,17 @@ export default async function SettingsPage() {
 
              {/* INFO / HELP */}
              <div className="rounded-xl bg-slate-50 dark:bg-slate-900/50 p-6 border border-slate-100 dark:border-slate-800">
-                 <h3 className="font-semibold text-sm mb-2 text-slate-900 dark:text-white">Precisas de ajuda?</h3>
+                 <h3 className="font-semibold text-sm mb-2 text-slate-900 dark:text-white flex items-center gap-2">
+                     <MessageSquare className="w-4 h-4" />
+                     Precisas de ajuda?
+                 </h3>
                  <p className="text-xs text-muted-foreground mb-4">
                      Se tiveres alguma dúvida sobre a tua conta ou faturação, entra em contacto com o suporte.
                  </p>
-                 <Button variant="outline" size="sm" className="w-full text-xs h-8">
-                     Contactar Suporte
+                 <Button variant="outline" size="sm" className="w-full text-xs h-8" asChild>
+                     <Link href="/dashboard/support">
+                         Contactar Suporte
+                     </Link>
                  </Button>
              </div>
           </div>

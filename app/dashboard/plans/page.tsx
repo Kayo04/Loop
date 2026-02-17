@@ -123,12 +123,33 @@ export default function PlansPage() {
                 <CardDescription className="text-blue-100 mt-2 font-medium opacity-90">
                     Desbloqueia todo o teu potencial financeiro.
                 </CardDescription>
-                <div className="mt-8 flex items-baseline gap-1">
-                    <span className="text-6xl font-black text-white tracking-tight">
-                        {isAnnual ? "€4.16" : "€4.99"}
-                    </span>
-                    <span className="text-blue-100 font-medium text-xl">/mês</span>
+                
+                {/* Launch Discount Badge */}
+                <div className="mt-4 inline-flex items-center gap-2 bg-yellow-400/20 backdrop-blur-sm border border-yellow-400/30 px-3 py-1.5 rounded-full">
+                    <Zap size={14} className="text-yellow-300 fill-yellow-300" />
+                    <span className="text-yellow-100 text-xs font-bold">DESCONTO DE LANÇAMENTO</span>
                 </div>
+                
+                <div className="mt-6 space-y-2">
+                    {/* Original Price (Strikethrough) */}
+                    <div className="flex items-baseline gap-2">
+                        <span className="text-2xl font-bold text-blue-200 line-through opacity-60">
+                            {isAnnual ? "€6.66" : "€7.99"}
+                        </span>
+                        <span className="text-xs text-blue-200 bg-red-500/20 px-2 py-0.5 rounded-full font-bold">
+                            -{isAnnual ? "38%" : "38%"}
+                        </span>
+                    </div>
+                    
+                    {/* Current Discounted Price */}
+                    <div className="flex items-baseline gap-1">
+                        <span className="text-6xl font-black text-white tracking-tight">
+                            {isAnnual ? "€4.16" : "€4.99"}
+                        </span>
+                        <span className="text-blue-100 font-medium text-xl">/mês</span>
+                    </div>
+                </div>
+                
                 {isAnnual && (
                   <p className="text-xs text-blue-100 bg-black/20 px-3 py-1.5 rounded-lg inline-block mt-2 font-medium backdrop-blur-sm">
                     Cobrado anualmente (€49.99/ano)

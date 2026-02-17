@@ -89,7 +89,7 @@ export async function toggleHabit(habitId: string, date?: string) {
 
 // 4. Update Profile (Currency, etc.)
 export async function updateProfile(formData: FormData) {
-  "use server" // Ensure it's treated as a server action if called directly
+  "use server"
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return
@@ -105,5 +105,92 @@ export async function updateProfile(formData: FormData) {
 
   revalidatePath("/dashboard")
   revalidatePath("/dashboard/settings")
-  return { success: true }
+}
+
+// 5. Cancel Subscription
+export async function cancelSubscription() {
+  "use server"
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return
+
+  // Get user profile for email and Stripe subscription ID
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("full_name, email, subscription_start_date, billing_cycle, stripe_subscription_id")
+    .eq("id", user.id)
+    .single()
+
+  // CRITICAL: Cancel in Stripe FIRST before updating database
+  if (profile?.stripe_subscription_id) {
+    try {
+      const { stripe } = await import("@/lib/stripe")
+
+      // Cancel at period end (user keeps access until billing date)
+      await stripe.subscriptions.update(profile.stripe_subscription_id, {
+        cancel_at_period_end: true,
+      })
+    } catch (error) {
+      console.error("Error cancelling Stripe subscription:", error)
+      // Continue with database update even if Stripe fails
+      // This prevents user from being stuck
+    }
+  }
+
+  // Update database to mark as cancelled
+  await supabase
+    .from("profiles")
+    .update({
+      subscription_status: 'cancelled',
+      // Don't change tier yet - user keeps access until period end
+    })
+    .eq("id", user.id)
+
+  // Send cancellation email
+  if (profile?.email) {
+    const { sendCancellationEmail } = await import("@/lib/send-email")
+
+    // Calculate access until date
+    const startDate = profile.subscription_start_date ? new Date(profile.subscription_start_date) : new Date()
+    const accessUntil = new Date(startDate)
+    const monthsToAdd = profile.billing_cycle === 'yearly' ? 12 : 1
+    accessUntil.setMonth(accessUntil.getMonth() + monthsToAdd)
+
+    await sendCancellationEmail({
+      email: profile.email,
+      name: profile.full_name || 'Utilizador',
+      accessUntil: accessUntil.toLocaleDateString('pt-PT', {
+        day: 'numeric',
+        month: 'long',
+        year: 'numeric'
+      }),
+    })
+  }
+
+  revalidatePath("/dashboard")
+  revalidatePath("/dashboard/settings")
+}
+
+// 6. Submit Support Message
+export async function submitSupportMessage(formData: FormData) {
+  "use server"
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return
+
+  const subject = formData.get("subject") as string
+  const message = formData.get("message") as string
+  const category = formData.get("category") as string
+
+  if (!subject || !message || !category) return
+
+  await supabase.from("support_messages").insert({
+    user_id: user.id,
+    subject,
+    message,
+    category,
+    status: 'open'
+  })
+
+  revalidatePath("/dashboard/support")
 }

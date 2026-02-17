@@ -332,7 +332,6 @@ export async function parseTransactionText(text: string) {
         'hospital': 'Saúde',
         'cuf': 'Saúde',
         'lusiadas': 'Saúde',
-        'luz': 'Saúde',
         'dentista': 'Saúde',
         'oral': 'Saúde',
         'otica': 'Saúde',
