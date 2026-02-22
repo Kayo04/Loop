@@ -169,7 +169,7 @@ export function HabitHistory({ habits }: { habits: HabitData[] }) {
                                 return null
                             }}
                         />
-                        <Bar dataKey="score" radius={[4, 4, 0, 0]} onClick={(data) => {
+                        <Bar dataKey="score" radius={[4, 4, 0, 0]} onClick={(data: any) => {
                             const newDate = new Date()
                             newDate.setFullYear(data.year)
                             newDate.setMonth(data.month)
