@@ -5,13 +5,17 @@ import { createClient } from "@supabase/supabase-js"
 import Stripe from "stripe"
 import { sendWelcomeEmail } from "@/lib/send-email"
 
-// Admin Client for Webhook (Service Role)
-const supabaseAdmin = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
-)
+// Force dynamic rendering — prevents Next.js from trying to statically
+// analyze this route at build time (which would fail without env vars)
+export const dynamic = 'force-dynamic'
 
 export async function POST(req: Request) {
+    // Create admin client inside the handler so it only runs at request time
+    const supabaseAdmin = createClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        process.env.SUPABASE_SERVICE_ROLE_KEY!
+    )
+
     const body = await req.text()
     const signature = (await headers()).get("Stripe-Signature") as string
 
