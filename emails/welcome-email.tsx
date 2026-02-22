@@ -93,7 +93,7 @@ export default function WelcomeEmail({
           <Section style={content}>
             <Heading style={h2}>✨ O que está incluído</Heading>
             {features.map((feature, index) => (
-              <Text key={index} style={feature}>
+              <Text key={index} style={featureStyle}>
                 {feature}
               </Text>
             ))}
@@ -123,7 +123,7 @@ export default function WelcomeEmail({
 
           {/* Support */}
           <Section style={content}>
-            <Heading style={h2}>💬 Precis as de Ajuda?</Heading>
+            <Heading style={h2}>💬 Precisas de Ajuda?</Heading>
             <Text style={text}>
               A nossa equipa de suporte está disponível 24/7 para te ajudar.
             </Text>

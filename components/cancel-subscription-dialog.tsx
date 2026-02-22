@@ -56,7 +56,7 @@ export function CancelSubscriptionDialog() {
             <AlertDialogTitle>Cancelar Subscrição Pro?</AlertDialogTitle>
           </div>
           <AlertDialogDescription className="space-y-4 pt-4">
-            <p>Ao cancelar a tua subscrição:</p>
+            <div>Ao cancelar a tua subscrição:</div>
             <ul className="list-disc list-inside space-y-2 text-sm">
               <li>Perderás acesso a todas as funcionalidades premium</li>
               <li>Os teus dados serão mantidos em segurança</li>

@@ -5,50 +5,50 @@ import WelcomeEmail from '@/emails/welcome-email'
 const resend = new Resend(process.env.RESEND_API_KEY)
 
 interface WelcomeEmailData {
-    email: string
-    name: string
-    plan: 'Monthly' | 'Annual'
-    amount: number
-    nextBillingDate: string
-    transactionId: string
+  email: string
+  name: string
+  plan: 'Monthly' | 'Annual'
+  amount: number
+  nextBillingDate: string
+  transactionId: string
 }
 
 export async function sendWelcomeEmail(data: WelcomeEmailData) {
-    try {
-        const emailHtml = render(
-            WelcomeEmail({
-                name: data.name,
-                plan: data.plan,
-                amount: data.amount,
-                nextBillingDate: data.nextBillingDate,
-                transactionId: data.transactionId,
-            })
-        )
+  try {
+    const emailHtml = await render(
+      WelcomeEmail({
+        name: data.name,
+        plan: data.plan,
+        amount: data.amount,
+        nextBillingDate: data.nextBillingDate,
+        transactionId: data.transactionId,
+      })
+    )
 
-        const result = await resend.emails.send({
-            from: 'Loop <noreply@loop.com>',
-            to: data.email,
-            subject: 'Bem-vindo ao Loop Pro! 🎉',
-            html: emailHtml,
-        })
+    const result = await resend.emails.send({
+      from: 'Loop <onboarding@resend.dev>',
+      to: data.email,
+      subject: 'Bem-vindo ao Loop Pro! 🎉',
+      html: emailHtml,
+    })
 
-        console.log('Welcome email sent:', result)
-        return { success: true, data: result }
-    } catch (error) {
-        console.error('Error sending welcome email:', error)
-        return { success: false, error }
-    }
+    console.log('Welcome email sent:', result)
+    return { success: true, data: result }
+  } catch (error) {
+    console.error('Error sending welcome email:', error)
+    return { success: false, error }
+  }
 }
 
 interface CancellationEmailData {
-    email: string
-    name: string
-    accessUntil: string
+  email: string
+  name: string
+  accessUntil: string
 }
 
 export async function sendCancellationEmail(data: CancellationEmailData) {
-    try {
-        const emailHtml = `
+  try {
+    const emailHtml = `
       <!DOCTYPE html>
       <html>
         <head>
@@ -92,17 +92,17 @@ export async function sendCancellationEmail(data: CancellationEmailData) {
       </html>
     `
 
-        const result = await resend.emails.send({
-            from: 'Loop <noreply@loop.com>',
-            to: data.email,
-            subject: 'Confirmação de Cancelamento - Loop Pro',
-            html: emailHtml,
-        })
+    const result = await resend.emails.send({
+      from: 'Loop <onboarding@resend.dev>',
+      to: data.email,
+      subject: 'Confirmação de Cancelamento - Loop Pro',
+      html: emailHtml,
+    })
 
-        console.log('Cancellation email sent:', result)
-        return { success: true, data: result }
-    } catch (error) {
-        console.error('Error sending cancellation email:', error)
-        return { success: false, error }
-    }
+    console.log('Cancellation email sent:', result)
+    return { success: true, data: result }
+  } catch (error) {
+    console.error('Error sending cancellation email:', error)
+    return { success: false, error }
+  }
 }

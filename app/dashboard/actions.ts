@@ -121,28 +121,27 @@ export async function cancelSubscription() {
     .eq("id", user.id)
     .single()
 
-  // CRITICAL: Cancel in Stripe FIRST before updating database
+  // Cancel in Stripe at period end (user keeps access until billing date)
   if (profile?.stripe_subscription_id) {
     try {
       const { stripe } = await import("@/lib/stripe")
 
-      // Cancel at period end (user keeps access until billing date)
+      // Cancel at period end - user keeps access until next billing date
       await stripe.subscriptions.update(profile.stripe_subscription_id, {
         cancel_at_period_end: true,
       })
     } catch (error) {
       console.error("Error cancelling Stripe subscription:", error)
       // Continue with database update even if Stripe fails
-      // This prevents user from being stuck
     }
   }
 
-  // Update database to mark as cancelled
+  // Update database to mark as cancelled (but keep tier until period ends)
   await supabase
     .from("profiles")
     .update({
       subscription_status: 'cancelled',
-      // Don't change tier yet - user keeps access until period end
+      // Keep tier as 'pro' - Stripe webhook will change to 'free' when period ends
     })
     .eq("id", user.id)
 
@@ -150,7 +149,7 @@ export async function cancelSubscription() {
   if (profile?.email) {
     const { sendCancellationEmail } = await import("@/lib/send-email")
 
-    // Calculate access until date
+    // Calculate access until date (end of current billing period)
     const startDate = profile.subscription_start_date ? new Date(profile.subscription_start_date) : new Date()
     const accessUntil = new Date(startDate)
     const monthsToAdd = profile.billing_cycle === 'yearly' ? 12 : 1
