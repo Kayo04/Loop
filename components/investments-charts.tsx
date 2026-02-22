@@ -42,7 +42,7 @@ export function DividendHistoryChart({ data }: { data: DividendData[] }) {
                             tickFormatter={(value) => `€${value}`} 
                         />
                         <Tooltip 
-                            formatter={(value: number) => [`€${value.toFixed(2)}`, "Dividendos"]}
+                            formatter={(value: any) => [`€${Number(value).toFixed(2)}`, "Dividendos"]}
                             contentStyle={{ backgroundColor: 'rgba(255, 255, 255, 0.9)', borderColor: '#e2e8f0', borderRadius: '12px', color: '#000' }}
                             cursor={{ fill: 'transparent' }}
                         />
