@@ -249,7 +249,7 @@ export default async function RegisterPage({
                 name="fullName"
                 type="text"
                 className="auth-input"
-                placeholder="o teu nome"
+                placeholder="João Silva"
                 required
               />
             </div>
@@ -261,7 +261,7 @@ export default async function RegisterPage({
                 name="email"
                 type="email"
                 className="auth-input"
-                placeholder="o teu email"
+                placeholder="joao@gmail.com"
                 required
               />
             </div>
@@ -273,7 +273,7 @@ export default async function RegisterPage({
                 name="password"
                 type="password"
                 className="auth-input"
-                placeholder="a tua password (mín. 6 caracteres)"
+                placeholder="••••••••"
                 required
                 minLength={6}
               />

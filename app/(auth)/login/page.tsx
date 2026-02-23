@@ -250,7 +250,7 @@ export default async function LoginPage({
                 name="email"
                 type="email"
                 className="auth-input"
-                placeholder="o teu email"
+                placeholder="joao@gmail.com"
                 required
               />
             </div>
@@ -262,7 +262,7 @@ export default async function LoginPage({
                 name="password"
                 type="password"
                 className="auth-input"
-                placeholder="a tua password"
+                placeholder="••••••••"
                 required
               />
             </div>
