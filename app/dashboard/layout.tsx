@@ -17,11 +17,11 @@ export default async function DashboardLayout({
     redirect("/login")
   }
 
-  // Fetch Profile for Avatar/Name
+  // Fetch Profile for Avatar/Name/Tier
   const { data: profile } = await supabase
     .from("profiles")
-    .select("full_name, avatar_url, subscription_tier")
-    .eq("id", user.id)
+    .select("*")
+    .eq("id", user!.id)
     .single()
 
   return (
