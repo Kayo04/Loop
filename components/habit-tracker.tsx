@@ -5,8 +5,7 @@ import Link from "next/link"
 import { createHabit, toggleHabit, deleteHabit } from "@/app/dashboard/actions"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { CheckCircle2, Circle, Trash2, Plus, Flame, MoreHorizontal, Calendar, Loader2 } from "lucide-react"
-import { Progress } from "@/components/ui/progress"
+import { CheckCircle2, Trash2, Plus, Flame, Calendar, Loader2 } from "lucide-react"
 import {
   Table,
   TableBody,
@@ -40,9 +39,41 @@ type HabitTrackerProps = {
 export function HabitTracker({ habits, weekDays, monthName, daysInMonth }: HabitTrackerProps) {
   const [isAdding, setIsAdding] = useState(false)
   const [isPending, startTransition] = useTransition()
-  
-  // As datas agora vêm do servidor (page.tsx) para evitar erros de hidratação (Hydration Failure)
+
+  // Optimistic state: tracks history per habit locally for instant feedback
+  const [optimisticHistory, setOptimisticHistory] = useState<Record<string, string[]>>(
+    () => Object.fromEntries(habits.map(h => [h.id, h.history]))
+  )
+
+  // Track buttons currently animating (for pop effect)
+  const [animating, setAnimating] = useState<string>("")
+
   const headers = weekDays
+
+  function handleToggle(habitId: string, dateIso: string) {
+    const key = `${habitId}:${dateIso}`
+
+    // Instant optimistic update
+    setOptimisticHistory(prev => {
+      const current = prev[habitId] ?? []
+      const isCurrentlyDone = current.includes(dateIso)
+      return {
+        ...prev,
+        [habitId]: isCurrentlyDone
+          ? current.filter(d => d !== dateIso)
+          : [...current, dateIso],
+      }
+    })
+
+    // Trigger pop animation
+    setAnimating(key)
+    setTimeout(() => setAnimating(""), 300)
+
+    // Server action in background
+    startTransition(async () => {
+      await toggleHabit(habitId, dateIso)
+    })
+  }
 
   return (
     <div className="space-y-6">
@@ -70,14 +101,13 @@ export function HabitTracker({ habits, weekDays, monthName, daysInMonth }: Habit
             </form>
         )}
 
-        {/* --- TABELA TIPO EXCEL (Layout Profissional) --- */}
+        {/* --- TABELA --- */}
         <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
             <div className="overflow-x-auto">
                 <Table>
                     <TableHeader className="bg-slate-50 dark:bg-slate-950">
                         <TableRow className="hover:bg-transparent">
                             <TableHead className="w-[300px] pl-6 font-bold text-slate-500 uppercase text-xs tracking-wider">Hábito</TableHead>
-                            {/* Cabeçalhos dos Dias */}
                             {headers.map((h, i) => (
                                 <TableHead key={i} className={`text-center p-0 w-10 h-14 ${h.isToday ? "bg-blue-50/50 dark:bg-blue-900/10" : ""}`}>
                                     <div className="flex flex-col items-center justify-center h-full">
@@ -93,10 +123,10 @@ export function HabitTracker({ habits, weekDays, monthName, daysInMonth }: Habit
                         </TableRow>
                     </TableHeader>
                     <TableBody>
-                        {habits.map((habit, index) => {
-                             // Calcular progresso do mês atual
+                        {habits.map((habit) => {
+                             const localHistory = optimisticHistory[habit.id] ?? habit.history
                              const currentMonthStr = new Date().toISOString().slice(0, 7)
-                             const completionsMonth = habit.history.filter(d => d.startsWith(currentMonthStr)).length
+                             const completionsMonth = localHistory.filter(d => d.startsWith(currentMonthStr)).length
                              const progress = Math.round((completionsMonth / daysInMonth) * 100)
                              
                              return (
@@ -118,19 +148,26 @@ export function HabitTracker({ habits, weekDays, monthName, daysInMonth }: Habit
                                     
                                     {/* Grid de Checkboxes (7 dias) */}
                                     {headers.map((h, i) => {
-                                        const isCompleted = habit.history.includes(h.dateIso)
+                                        const isCompleted = localHistory.includes(h.dateIso)
+                                        const isAnimating = animating === `${habit.id}:${h.dateIso}`
                                         return (
                                             <TableCell key={i} className={`p-0 text-center ${h.isToday ? "bg-blue-50/30 dark:bg-blue-900/5" : ""}`}>
                                                 <div className="flex items-center justify-center h-full">
                                                     <button 
-                                                        onClick={() => toggleHabit(habit.id, h.dateIso)}
-                                                        className={`w-8 h-8 rounded-lg flex items-center justify-center transition-all duration-200 ${
-                                                            isCompleted 
-                                                                ? "bg-green-500 text-white shadow-sm scale-100" 
-                                                                : "bg-slate-100 dark:bg-slate-800 text-slate-300 hover:border-blue-400 hover:text-blue-400 border border-transparent scale-90 hover:scale-100"
-                                                        }`}
+                                                        onClick={() => handleToggle(habit.id, h.dateIso)}
+                                                        className={`w-8 h-8 rounded-lg flex items-center justify-center
+                                                            transition-all duration-150
+                                                            ${isAnimating ? "scale-125" : isCompleted ? "scale-100" : "scale-90 hover:scale-100"}
+                                                            ${isCompleted 
+                                                                ? "bg-green-500 text-white shadow-sm" 
+                                                                : "bg-slate-100 dark:bg-slate-800 text-slate-300 hover:border-blue-400 hover:text-blue-400 border border-transparent"
+                                                            }`}
+                                                        style={{ willChange: "transform" }}
                                                     >
-                                                        {isCompleted ? <CheckCircle2 size={16} strokeWidth={3} /> : <div className="w-1.5 h-1.5 rounded-full bg-slate-300 dark:bg-slate-700" />}
+                                                        {isCompleted 
+                                                            ? <CheckCircle2 size={16} strokeWidth={3} /> 
+                                                            : <div className="w-1.5 h-1.5 rounded-full bg-slate-300 dark:bg-slate-700" />
+                                                        }
                                                     </button>
                                                 </div>
                                             </TableCell>
@@ -145,7 +182,7 @@ export function HabitTracker({ habits, weekDays, monthName, daysInMonth }: Habit
                                                 <span className="text-blue-600 dark:text-blue-400">{progress}%</span>
                                             </div>
                                             <div className="h-2 w-full bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
-                                                <div className="h-full bg-blue-500 transition-all duration-500" style={{ width: `${progress}%` }} />
+                                                <div className="h-full bg-blue-500 transition-all duration-300" style={{ width: `${progress}%` }} />
                                             </div>
                                         </div>
                                     </TableCell>
