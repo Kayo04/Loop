@@ -2,6 +2,7 @@ import Link from "next/link"
 import { redirect } from "next/navigation"
 import { createClient } from "@/lib/supabase-server"
 import { SubmitButton } from "@/components/auth/submit-button"
+import { PasswordInput } from "@/components/auth/password-input"
 
 export default async function LoginPage({
   searchParams,
@@ -258,12 +259,10 @@ export default async function LoginPage({
 
             <div className="auth-field">
               <label className="auth-label" htmlFor="password">Password</label>
-              <input
+              <PasswordInput
                 id="password"
                 name="password"
-                type="password"
                 className="auth-input"
-                placeholder="••••••••"
                 required
               />
             </div>
