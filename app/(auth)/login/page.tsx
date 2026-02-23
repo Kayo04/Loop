@@ -27,7 +27,7 @@ export default async function LoginPage({
     const { error } = await supabase.auth.signInWithPassword({ email, password })
 
     if (error) {
-      return redirect("/login?message=Email+ou+password+errados")
+      return redirect(`/login?message=${encodeURIComponent(error.message)}`)
     }
 
     return redirect("/dashboard")
