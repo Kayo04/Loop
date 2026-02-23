@@ -349,105 +349,75 @@ export function AssetManager({ assets }: AssetManagerProps) {
                                                 className="font-bold"
                                             />
                                         </div>
-                                        <div className="space-y-2 flex flex-col">
-                                            <Label>Ativo (Nome ou Símbolo)</Label>
-                                            <Popover open={openCombobox} onOpenChange={setOpenCombobox}>
-                                                <PopoverTrigger asChild>
-                                                    <Button
-                                                        variant="outline"
-                                                        role="combobox"
-                                                        aria-expanded={openCombobox}
-                                                        className="w-full justify-between font-normal"
-                                                    >
-                                                        {symbol ? formatDisplaySymbol(symbol) : "Procurar..."}
-                                                        <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                                                    </Button>
-                                                </PopoverTrigger>
-                                                <PopoverContent className="w-[300px] p-0" align="start">
-                                                    <Command>
-                                                        <CommandInput 
-                                                            placeholder="Bitcoin, Apple, SPY..." 
-                                                            value={searchValue}
-                                                            onValueChange={setSearchValue}
-                                                        />
-                                                        <CommandList>
-                                                            <CommandEmpty>
-                                                                <div className="p-2">
-                                                                     <p className="text-sm text-muted-foreground mb-2">Não encontrado.</p>
-                                                                     <Button 
-                                                                        variant="default" 
-                                                                        size="sm" 
-                                                                        className="w-full h-auto py-2 bg-blue-600 hover:bg-blue-700 text-white"
-                                                                        type="button"
-                                                                        onClick={() => {
-                                                                            if (searchValue) {
-                                                                                setSymbol(searchValue.toUpperCase())
-                                                                                setOpenCombobox(false)
-                                                                                handlePreview(searchValue.toUpperCase())
-                                                                            }
-                                                                        }}
-                                                                    >
-                                                                        Usar &quot;{searchValue}&quot;
-                                                                    </Button>
-                                                                </div>
-                                                            </CommandEmpty>
-                                                            <CommandGroup heading="Ações">
-                                                                {POPULAR_ASSETS.filter(a => a.type === 'stock').map((asset) => (
-                                                                     <CommandItem
-                                                                        key={asset.symbol}
-                                                                        value={asset.name + " " + asset.symbol} 
-                                                                        onSelect={() => {
-                                                                            setSymbol(asset.symbol)
-                                                                            setOpenCombobox(false)
-                                                                            handlePreview(asset.symbol)
-                                                                        }}
-                                                                    >
-                                                                        <Check className={cn("mr-2 h-4 w-4", symbol === asset.symbol ? "opacity-100" : "opacity-0")} />
-                                                                        <span className="font-bold w-16">{formatDisplaySymbol(asset.symbol)}</span>
-                                                                        <span className="text-muted-foreground truncate">{asset.name}</span>
-                                                                    </CommandItem>
-                                                                ))}
-                                                            </CommandGroup>
-                                                            <CommandGroup heading="Criptomoedas">
-                                                                {POPULAR_ASSETS.filter(a => a.type === 'crypto').map((asset) => (
-                                                                     <CommandItem
-                                                                        key={asset.symbol}
-                                                                        value={asset.name + " " + asset.symbol} 
-                                                                        onSelect={() => {
-                                                                            setSymbol(asset.symbol)
-                                                                            setOpenCombobox(false)
-                                                                            handlePreview(asset.symbol)
-                                                                        }}
-                                                                    >
-                                                                        <Check className={cn("mr-2 h-4 w-4", symbol === asset.symbol ? "opacity-100" : "opacity-0")} />
-                                                                        <span className="font-bold w-16">{formatDisplaySymbol(asset.symbol)}</span>
-                                                                        <span className="text-muted-foreground truncate">{asset.name}</span>
-                                                                    </CommandItem>
-                                                                ))}
-                                                            </CommandGroup>
-                                                            <CommandGroup heading="ETFs & Fundos">
-                                                                {POPULAR_ASSETS.filter(a => a.type === 'etf').map((asset) => (
-                                                                     <CommandItem
-                                                                        key={asset.symbol}
-                                                                        value={asset.name + " " + asset.symbol} 
-                                                                        onSelect={() => {
-                                                                            setSymbol(asset.symbol)
-                                                                            setOpenCombobox(false)
-                                                                            handlePreview(asset.symbol)
-                                                                        }}
-                                                                    >
-                                                                        <Check className={cn("mr-2 h-4 w-4", symbol === asset.symbol ? "opacity-100" : "opacity-0")} />
-                                                                        <span className="font-bold w-16">{formatDisplaySymbol(asset.symbol)}</span>
-                                                                        <span className="text-muted-foreground truncate">{asset.name}</span>
-                                                                    </CommandItem>
-                                                                ))}
-                                                            </CommandGroup>
-                                                        </CommandList>
-                                                    </Command>
-                                                </PopoverContent>
-                                            </Popover>
+                                        <div className="space-y-2 flex flex-col relative">
+                                            <Label>Símbolo do Ativo</Label>
+                                            <div className="flex gap-2">
+                                                <Input
+                                                    type="text"
+                                                    placeholder="Ex: GALP.LS, AAPL, BTC-USD, VUAG.L..."
+                                                    value={symbol}
+                                                    onChange={(e) => {
+                                                        setSymbol(e.target.value.toUpperCase())
+                                                        setSearchValue(e.target.value.toUpperCase())
+                                                        setPreviewData(null)
+                                                    }}
+                                                    onKeyDown={(e) => {
+                                                        if (e.key === 'Enter' && symbol) {
+                                                            e.preventDefault()
+                                                            handlePreview()
+                                                        }
+                                                    }}
+                                                    className="font-mono"
+                                                    autoComplete="off"
+                                                />
+                                                <Button
+                                                    type="button"
+                                                    variant="outline"
+                                                    onClick={() => handlePreview()}
+                                                    disabled={!symbol || isPreviewLoading}
+                                                    className="shrink-0 px-3"
+                                                >
+                                                    {isPreviewLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <TrendingUp className="w-4 h-4" />}
+                                                </Button>
+                                            </div>
+
+                                            {/* Live suggestions — strict substring match, no fuzzy */}
+                                            {searchValue.length >= 1 && !previewData && (() => {
+                                                const q = searchValue.toUpperCase()
+                                                const hits = POPULAR_ASSETS.filter(a =>
+                                                    a.symbol.replace(/-USD$/, '').replace(/\..+$/, '').includes(q) ||
+                                                    a.symbol.toUpperCase().includes(q) ||
+                                                    a.name.toUpperCase().includes(q)
+                                                ).slice(0, 8)
+                                                return hits.length > 0 ? (
+                                                    <div className="absolute top-full left-0 right-12 z-50 border border-slate-200 dark:border-slate-700 rounded-lg overflow-hidden shadow-lg bg-white dark:bg-slate-900 max-h-52 overflow-y-auto mt-1">
+                                                        {hits.map(a => (
+                                                            <button
+                                                                key={a.symbol}
+                                                                type="button"
+                                                                className="w-full text-left px-3 py-2 text-sm hover:bg-blue-50 dark:hover:bg-slate-800 flex items-center gap-3 border-b border-slate-100 dark:border-slate-800 last:border-0 transition-colors"
+                                                                onClick={() => {
+                                                                    setSymbol(a.symbol)
+                                                                    setSearchValue('')
+                                                                    handlePreview(a.symbol)
+                                                                }}
+                                                            >
+                                                                <span className="font-bold font-mono text-xs bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded shrink-0">
+                                                                    {formatDisplaySymbol(a.symbol)}
+                                                                </span>
+                                                                <span className="text-slate-600 dark:text-slate-400 truncate">{a.name}</span>
+                                                            </button>
+                                                        ))}
+                                                    </div>
+                                                ) : null
+                                            })()}
+
+                                            <p className="text-xs text-muted-foreground">
+                                                Escreve o símbolo e prime Enter ou clica 🔍. Para bolsas europeias adiciona extensão: <span className="font-mono">GALP.LS</span>, <span className="font-mono">EDP.LS</span>, <span className="font-mono">VUAG.L</span>
+                                            </p>
                                         </div>
                                      </div>
+
 
                                     {/* PREVIEW LOADING SKELETON */}
                                     {isPreviewLoading && (
