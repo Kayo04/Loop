@@ -5,115 +5,120 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Verifica o teu email - Loop</title>
   <style>
-    body { 
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; 
-      line-height: 1.6; 
-      color: #333; 
-      margin: 0; 
-      padding: 0; 
-      background-color: #f6f9fc;
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      line-height: 1.6;
+      color: #333;
+      margin: 0;
+      padding: 0;
+      background-color: #0d1117;
     }
-    .container { 
-      max-width: 600px; 
-      margin: 40px auto; 
-      background: #ffffff;
-      border-radius: 12px;
+    .container {
+      max-width: 580px;
+      margin: 40px auto;
+      background: #161b27;
+      border-radius: 16px;
       overflow: hidden;
-      box-shadow: 0 4px 24px rgba(0,0,0,0.08);
+      border: 1px solid rgba(255,255,255,0.08);
+      box-shadow: 0 20px 60px rgba(0,0,0,0.5);
     }
-    .header { 
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); 
-      color: white; 
-      padding: 40px 40px 32px; 
-      text-align: center; 
+    .header {
+      background: linear-gradient(135deg, #6366f1 0%, #3b82f6 100%);
+      padding: 36px 40px 28px;
+      text-align: center;
     }
-    .header h1 { 
-      margin: 0; 
-      font-size: 36px; 
-      font-weight: 800; 
-      letter-spacing: -1px;
+    .header h1 {
+      margin: 0;
+      font-size: 38px;
+      font-weight: 800;
+      color: #ffffff;
+      letter-spacing: -1.5px;
     }
-    .header p { 
-      margin: 6px 0 0 0; 
-      opacity: 0.85;
-      font-size: 14px;
+    .header p {
+      margin: 4px 0 0 0;
+      font-size: 13px;
+      color: rgba(255,255,255,0.75);
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
     }
-    .content { 
-      padding: 40px; 
+    .content {
+      padding: 36px 40px;
     }
     .content h2 {
-      color: #1f2937;
-      font-size: 22px;
-      margin-top: 0;
+      color: #f1f5f9;
+      font-size: 20px;
+      margin: 0 0 12px 0;
     }
-    .content p { 
-      color: #6b7280; 
-      font-size: 16px;
-      margin: 16px 0;
+    .content p {
+      color: #94a3b8;
+      font-size: 15px;
+      margin: 12px 0;
     }
     .otp-box {
-      background: #f3f4f6;
-      border: 2px dashed #667eea;
-      border-radius: 12px;
-      padding: 20px;
+      background: rgba(99,102,241,0.08);
+      border: 1.5px solid rgba(99,102,241,0.3);
+      border-radius: 14px;
+      padding: 24px 20px;
       text-align: center;
       margin: 28px 0;
     }
     .otp-label {
-      font-size: 13px;
-      color: #9ca3af;
+      font-size: 11px;
+      color: #64748b;
       text-transform: uppercase;
-      letter-spacing: 1px;
-      margin-bottom: 8px;
+      letter-spacing: 2px;
+      margin-bottom: 10px;
     }
     .otp-code {
-      font-size: 40px;
+      font-size: 44px;
       font-weight: 800;
-      letter-spacing: 12px;
-      color: #1f2937;
-      font-family: monospace;
-    }
-    .button { 
-      display: block; 
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); 
-      color: white !important; 
-      padding: 16px 32px; 
-      text-decoration: none; 
-      border-radius: 8px; 
-      margin: 28px 0;
-      font-weight: 700;
-      font-size: 16px;
-      text-align: center;
+      letter-spacing: 14px;
+      color: #e2e8f0;
+      font-family: 'Courier New', monospace;
+      padding-left: 14px;
     }
     .divider {
       text-align: center;
-      color: #9ca3af;
-      font-size: 14px;
+      color: #334155;
+      font-size: 13px;
       margin: 20px 0;
     }
+    .button {
+      display: block;
+      background: linear-gradient(135deg, #6366f1 0%, #3b82f6 100%);
+      color: #ffffff !important;
+      padding: 15px 32px;
+      text-decoration: none;
+      border-radius: 10px;
+      margin: 20px 0;
+      font-weight: 700;
+      font-size: 15px;
+      text-align: center;
+      box-shadow: 0 4px 20px rgba(99,102,241,0.4);
+    }
     .expire-notice {
-      background: #fef9c3;
-      border: 1px solid #fde68a;
+      background: rgba(251,191,36,0.08);
+      border: 1px solid rgba(251,191,36,0.2);
       border-radius: 8px;
       padding: 12px 16px;
-      font-size: 14px;
-      color: #92400e;
+      font-size: 13px;
+      color: #fbbf24;
       margin-top: 24px;
     }
-    .footer { 
-      text-align: center; 
-      padding: 24px 40px;
-      background: #f9fafb;
-      border-top: 1px solid #e5e7eb;
+    .footer {
+      text-align: center;
+      padding: 20px 40px 28px;
+      background: rgba(0,0,0,0.2);
+      border-top: 1px solid rgba(255,255,255,0.05);
     }
-    .footer p { 
-      color: #9ca3af; 
-      font-size: 12px; 
+    .footer p {
+      color: #475569;
+      font-size: 12px;
       margin: 4px 0;
     }
-    .footer a { 
-      color: #9ca3af; 
-      text-decoration: underline; 
+    .footer a {
+      color: #475569;
+      text-decoration: underline;
     }
   </style>
 </head>
@@ -121,40 +126,40 @@
   <div class="container">
     <div class="header">
       <h1>Loop</h1>
-      <p>Finance Tracker</p>
+      <p>Finance &amp; Habits Tracker</p>
     </div>
     <div class="content">
       <h2>👋 Confirma o teu email</h2>
       <p>Olá,</p>
-      <p>Obrigado por te registares no <strong>Loop Finance Tracker</strong>. Para ativar a tua conta, usa o código abaixo ou clica no botão de confirmação.</p>
+      <p>Obrigado por te registares no <strong style="color:#e2e8f0;">Loop</strong>. Usa o código abaixo para verificar a tua conta:</p>
 
       <div class="otp-box">
         <div class="otp-label">Código de Verificação</div>
         <div class="otp-code">{{ .Token }}</div>
       </div>
 
-      <div class="divider">— ou —</div>
+      <div class="divider">— ou confirma directamente —</div>
 
       <a href="{{ .ConfirmationURL }}" class="button">
         ✅ Confirmar Email
       </a>
 
       <div class="expire-notice">
-        ⏰ Este código expira em <strong>24 horas</strong>. Se não criaste esta conta, podes ignorar este email.
+        ⏰ Este código expira em <strong>24 horas</strong>. Se não criaste esta conta, ignora este email.
       </div>
 
-      <p style="margin-top: 28px; font-size: 14px; color: #9ca3af;">
-        Se o botão não funcionar, copia e cola este link no teu browser:<br>
-        <a href="{{ .ConfirmationURL }}" style="color: #667eea; word-break: break-all;">{{ .ConfirmationURL }}</a>
+      <p style="margin-top: 24px; font-size: 13px; color: #475569;">
+        Se o botão não funcionar, copia e cola este link:<br>
+        <a href="{{ .ConfirmationURL }}" style="color: #818cf8; word-break: break-all;">{{ .ConfirmationURL }}</a>
       </p>
     </div>
     <div class="footer">
       <p>© 2026 Loop Finance Tracker. Todos os direitos reservados.</p>
       <p>
-        <a href="https://loop.com/privacy">Privacidade</a> | 
-        <a href="https://loop.com/terms">Termos</a>
+        <a href="https://loophabitandfinancetracker.com/privacy">Privacidade</a> |
+        <a href="https://loophabitandfinancetracker.com/terms">Termos</a>
       </p>
     </div>
   </div>
-</body>
+</body>,
 </html>

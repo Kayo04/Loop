@@ -1,11 +1,11 @@
 "use client"
 
-import { useRef, useState } from "react"
+import { Suspense, useRef, useState } from "react"
 import { useSearchParams, useRouter } from "next/navigation"
 import { createClient } from "@/lib/supabase-client"
 import Link from "next/link"
 
-export default function VerifyEmailPage() {
+function VerifyEmailContent() {
   const searchParams = useSearchParams()
   const router = useRouter()
   const email = searchParams.get("email") || ""
@@ -65,6 +65,53 @@ export default function VerifyEmailPage() {
     setTimeout(() => setResent(false), 5000)
   }
 
+  return (
+    <div className="auth-card">
+      <div className="auth-logo">
+        <span className="auth-logo-text">Loop</span>
+      </div>
+
+      <div className="email-icon">📧</div>
+      <h1 className="verify-title">Verifica o teu email</h1>
+      <p className="verify-subtitle">Enviámos um código de 6 dígitos para:</p>
+      <p className="verify-email-display">{email || "o teu email"}</p>
+
+      <div className="otp-row" onPaste={handlePaste}>
+        {digits.map((d, i) => (
+          <input
+            key={i}
+            ref={(el) => { inputRefs.current[i] = el }}
+            className={`otp-box${d ? " filled" : ""}`}
+            type="text"
+            inputMode="numeric"
+            maxLength={1}
+            value={d}
+            onChange={(e) => handleChange(i, e.target.value)}
+            onKeyDown={(e) => handleKeyDown(i, e)}
+            autoFocus={i === 0}
+          />
+        ))}
+      </div>
+
+      {error && <div className="auth-error">{error}</div>}
+      {resent && <div className="auth-success">Código reenviado! Verifica o teu email.</div>}
+
+      <button className="auth-btn" onClick={handleVerify} disabled={loading}>
+        {loading ? "A verificar..." : "Verificar conta →"}
+      </button>
+
+      <button className="resend-btn" onClick={handleResend}>
+        Não recebeste o código? Reenviar
+      </button>
+
+      <div className="auth-footer">
+        <Link href="/login" className="auth-link">← Voltar ao login</Link>
+      </div>
+    </div>
+  )
+}
+
+export default function VerifyEmailPage() {
   return (
     <>
       <style>{`
@@ -270,48 +317,15 @@ export default function VerifyEmailPage() {
       `}</style>
 
       <div className="auth-bg">
-        <div className="auth-card">
-          <div className="auth-logo">
-            <span className="auth-logo-text">Loop</span>
+        <Suspense fallback={
+          <div className="auth-card">
+            <div className="auth-logo"><span className="auth-logo-text">Loop</span></div>
+            <div className="email-icon">📧</div>
+            <h1 className="verify-title">A carregar...</h1>
           </div>
-
-          <div className="email-icon">📧</div>
-          <h1 className="verify-title">Verifica o teu email</h1>
-          <p className="verify-subtitle">Enviámos um código de 6 dígitos para:</p>
-          <p className="verify-email-display">{email || "o teu email"}</p>
-
-          <div className="otp-row" onPaste={handlePaste}>
-            {digits.map((d, i) => (
-              <input
-                key={i}
-                ref={(el) => { inputRefs.current[i] = el }}
-                className={`otp-box${d ? " filled" : ""}`}
-                type="text"
-                inputMode="numeric"
-                maxLength={1}
-                value={d}
-                onChange={(e) => handleChange(i, e.target.value)}
-                onKeyDown={(e) => handleKeyDown(i, e)}
-                autoFocus={i === 0}
-              />
-            ))}
-          </div>
-
-          {error && <div className="auth-error">{error}</div>}
-          {resent && <div className="auth-success">Código reenviado! Verifica o teu email.</div>}
-
-          <button className="auth-btn" onClick={handleVerify} disabled={loading}>
-            {loading ? "A verificar..." : "Verificar conta →"}
-          </button>
-
-          <button className="resend-btn" onClick={handleResend}>
-            Não recebeste o código? Reenviar
-          </button>
-
-          <div className="auth-footer">
-            <Link href="/login" className="auth-link">← Voltar ao login</Link>
-          </div>
-        </div>
+        }>
+          <VerifyEmailContent />
+        </Suspense>
       </div>
     </>
   )
