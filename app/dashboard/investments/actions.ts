@@ -37,6 +37,26 @@ export async function getAllAssets() {
 }
 
 
+// 1.2 SEARCH SYMBOL — live Yahoo Finance search by name or ticker
+export async function searchStockSymbol(query: string) {
+    if (!query || query.trim().length < 2) return []
+    try {
+        const yahooFinance = (await import('yahoo-finance2')).default
+        const results = await yahooFinance.search(query.trim(), {}, { validateResult: false })
+        return (results.quotes || [])
+            .filter((q: any) => q.symbol && (q.quoteType === 'EQUITY' || q.quoteType === 'ETF' || q.quoteType === 'CRYPTOCURRENCY' || q.quoteType === 'MUTUALFUND'))
+            .slice(0, 8)
+            .map((q: any) => ({
+                symbol: q.symbol as string,
+                name: (q.longname || q.shortname || q.symbol) as string,
+                exchange: (q.exchDisp || q.exchange || '') as string,
+                type: (q.quoteType || 'EQUITY') as string,
+            }))
+    } catch {
+        return []
+    }
+}
+
 // 1.5 PREVIEW STOCK ASSET (Smart)
 export async function previewStockAsset(symbol: string) {
     console.log("Server Action: previewStockAsset called with:", symbol)

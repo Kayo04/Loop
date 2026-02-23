@@ -9,7 +9,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Trash2, Building2, TrendingUp, Loader2, Check, ChevronsUpDown, Wallet, PieChart as PieChartIcon, Home, Car, Banknote, Landmark, CircleDollarSign, Pencil, X } from "lucide-react"
 import { useState, useMemo, useEffect } from "react"
-import { createFixedAsset, deleteAsset, previewStockAsset, createAsset, updateAsset } from "@/app/dashboard/investments/actions"
+import { createFixedAsset, deleteAsset, previewStockAsset, createAsset, updateAsset, searchStockSymbol } from "@/app/dashboard/investments/actions"
 import { toast } from "sonner"
 import { cn } from "@/lib/utils"
 import { Skeleton } from "@/components/ui/skeleton"
@@ -60,6 +60,20 @@ export function AssetManager({ assets }: AssetManagerProps) {
     const [isPreviewLoading, setIsPreviewLoading] = useState(false)
     const [openCombobox, setOpenCombobox] = useState(false)
     const [searchValue, setSearchValue] = useState("")
+    const [searchResults, setSearchResults] = useState<any[]>([])
+    const [isSearching, setIsSearching] = useState(false)
+
+    // --- EFFECT: Debounced live search ---
+    useEffect(() => {
+        if (searchValue.length < 2) { setSearchResults([]); return }
+        const t = setTimeout(async () => {
+            setIsSearching(true)
+            const results = await searchStockSymbol(searchValue)
+            setSearchResults(results)
+            setIsSearching(false)
+        }, 400)
+        return () => clearTimeout(t)
+    }, [searchValue])
 
     // --- HANDLERS: FIXED ---
     async function handleAddFixed(e: React.FormEvent) {
@@ -381,39 +395,44 @@ export function AssetManager({ assets }: AssetManagerProps) {
                                                 </Button>
                                             </div>
 
-                                            {/* Live suggestions — strict substring match, no fuzzy */}
-                                            {searchValue.length >= 1 && !previewData && (() => {
-                                                const q = searchValue.toUpperCase()
-                                                const hits = POPULAR_ASSETS.filter(a =>
-                                                    a.symbol.replace(/-USD$/, '').replace(/\..+$/, '').includes(q) ||
-                                                    a.symbol.toUpperCase().includes(q) ||
-                                                    a.name.toUpperCase().includes(q)
-                                                ).slice(0, 8)
-                                                return hits.length > 0 ? (
-                                                    <div className="absolute top-full left-0 right-12 z-50 border border-slate-200 dark:border-slate-700 rounded-lg overflow-hidden shadow-lg bg-white dark:bg-slate-900 max-h-52 overflow-y-auto mt-1">
-                                                        {hits.map(a => (
+                                            {/* Live search dropdown — real Yahoo Finance results */}
+                                            {searchValue.length >= 2 && !previewData && (
+                                                <div className="absolute top-full left-0 right-12 z-50 border border-slate-200 dark:border-slate-700 rounded-lg overflow-hidden shadow-lg bg-white dark:bg-slate-900 max-h-64 overflow-y-auto mt-1">
+                                                    {isSearching ? (
+                                                        <div className="flex items-center gap-2 px-3 py-3 text-sm text-muted-foreground">
+                                                            <Loader2 className="w-4 h-4 animate-spin" /> A pesquisar...
+                                                        </div>
+                                                    ) : searchResults.length > 0 ? (
+                                                        searchResults.map((r: any) => (
                                                             <button
-                                                                key={a.symbol}
+                                                                key={r.symbol}
                                                                 type="button"
-                                                                className="w-full text-left px-3 py-2 text-sm hover:bg-blue-50 dark:hover:bg-slate-800 flex items-center gap-3 border-b border-slate-100 dark:border-slate-800 last:border-0 transition-colors"
+                                                                className="w-full text-left px-3 py-2.5 text-sm hover:bg-blue-50 dark:hover:bg-slate-800 flex items-center gap-3 border-b border-slate-100 dark:border-slate-800 last:border-0 transition-colors"
                                                                 onClick={() => {
-                                                                    setSymbol(a.symbol)
+                                                                    setSymbol(r.symbol)
                                                                     setSearchValue('')
-                                                                    handlePreview(a.symbol)
+                                                                    setSearchResults([])
+                                                                    handlePreview(r.symbol)
                                                                 }}
                                                             >
-                                                                <span className="font-bold font-mono text-xs bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded shrink-0">
-                                                                    {formatDisplaySymbol(a.symbol)}
+                                                                <span className="font-bold font-mono text-xs bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 px-1.5 py-0.5 rounded shrink-0">
+                                                                    {r.symbol}
                                                                 </span>
-                                                                <span className="text-slate-600 dark:text-slate-400 truncate">{a.name}</span>
+                                                                <span className="flex-1 truncate text-slate-800 dark:text-slate-200">{r.name}</span>
+                                                                <span className="text-xs text-muted-foreground shrink-0">{r.exchange}</span>
                                                             </button>
-                                                        ))}
-                                                    </div>
-                                                ) : null
-                                            })()}
+                                                        ))
+                                                    ) : (
+                                                        <div className="px-3 py-3 text-sm text-muted-foreground">
+                                                            Nenhum resultado. Tenta digitar o símbolo exacto (ex: <span className="font-mono">GALP.LS</span>) e prime Enter.
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            )}
 
                                             <p className="text-xs text-muted-foreground">
-                                                Escreve o símbolo e prime Enter ou clica 🔍. Para bolsas europeias adiciona extensão: <span className="font-mono">GALP.LS</span>, <span className="font-mono">EDP.LS</span>, <span className="font-mono">VUAG.L</span>
+                                                Escreve o nome ou símbolo. Para bolsas europeias: <span className="font-mono">GALP.LS</span>, <span className="font-mono">EDP.LS</span>, <span className="font-mono">VUAG.L</span>
+
                                             </p>
                                         </div>
                                      </div>
