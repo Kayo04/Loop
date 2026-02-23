@@ -114,22 +114,6 @@ export default async function SupportPage() {
              </form>
           </CardContent>
        </Card>
-
-       <Card className="border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/30">
-          <CardHeader>
-             <CardTitle className="text-lg">Outras Formas de Contacto</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3 text-sm">
-             <div>
-                <p className="font-medium">Email Direto</p>
-                <p className="text-muted-foreground">support@loop.com</p>
-             </div>
-             <div>
-                <p className="font-medium">Horário de Suporte</p>
-                <p className="text-muted-foreground">24/7 - Sempre disponível</p>
-             </div>
-          </CardContent>
-       </Card>
-    </div>
+     </div>
   )
 }

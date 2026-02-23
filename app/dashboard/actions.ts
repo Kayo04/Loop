@@ -1,4 +1,4 @@
-"use server"
+﻿"use server"
 
 import { createClient } from "@/lib/supabase-server"
 import { revalidatePath } from "next/cache"
@@ -15,7 +15,7 @@ export async function getUserTier(userId: string) {
   return profile?.subscription_tier || 'free'
 }
 
-// 1. Criar um novo Hábito
+// 1. Criar um novo HÃ¡bito
 export async function createHabit(formData: FormData) {
   const supabase = await createClient()
   const title = formData.get("title") as string
@@ -25,7 +25,7 @@ export async function createHabit(formData: FormData) {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return
 
-  // VERIFICAÇÃO DE LIMITES (FREE = MAX 5)
+  // VERIFICAÃ‡ÃƒO DE LIMITES (FREE = MAX 5)
   const tier = await getUserTier(user.id)
   if (tier === 'free') {
     const { count } = await supabase
@@ -36,8 +36,8 @@ export async function createHabit(formData: FormData) {
     if (count && count >= 5) {
       // Retornar erro ou lidar com UI feedback (por agora silencioso ou toast se implementado)
       // Idealmente passariamos estado para o cliente mostrando erro.
-      // Como é server action pura, vamos apenas abortar para segurança.
-      return { error: "Limite de 5 hábitos atingido. Faça upgrade." }
+      // Como Ã© server action pura, vamos apenas abortar para seguranÃ§a.
+      return { error: "Limite de 5 hÃ¡bitos atingido. FaÃ§a upgrade." }
     }
   }
 
@@ -46,10 +46,10 @@ export async function createHabit(formData: FormData) {
     user_id: user.id,
   })
 
-  revalidatePath("/dashboard") // Atualiza a página automaticamente
+  revalidatePath("/dashboard") // Atualiza a pÃ¡gina automaticamente
 }
 
-// 2. Apagar um Hábito
+// 2. Apagar um HÃ¡bito
 export async function deleteHabit(habitId: string) {
   const supabase = await createClient()
   await supabase.from("habits").delete().eq("id", habitId)
@@ -62,9 +62,9 @@ export async function toggleHabit(habitId: string, date?: string) {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return
 
-  const targetDate = date || new Date().toISOString().split("T")[0] // Data específica ou hoje
+  const targetDate = date || new Date().toISOString().split("T")[0] // Data especÃ­fica ou hoje
 
-  // Verifica se já foi feito nessa data
+  // Verifica se jÃ¡ foi feito nessa data
   const { data: existingLog } = await supabase
     .from("habit_logs")
     .select("id")
@@ -73,10 +73,10 @@ export async function toggleHabit(habitId: string, date?: string) {
     .single()
 
   if (existingLog) {
-    // Se já existe, apaga (Desmarcar)
+    // Se jÃ¡ existe, apaga (Desmarcar)
     await supabase.from("habit_logs").delete().eq("id", existingLog.id)
   } else {
-    // Se não existe, cria (Marcar como feito)
+    // Se nÃ£o existe, cria (Marcar como feito)
     await supabase.from("habit_logs").insert({
       habit_id: habitId,
       user_id: user.id,
@@ -190,6 +190,25 @@ export async function submitSupportMessage(formData: FormData) {
     category,
     status: 'open'
   })
+
+  try {
+    const { Resend } = await import("resend")
+    const resend = new Resend(process.env.RESEND_API_KEY)
+    const categoryLabels: Record<string, string> = {
+      help: "Precisa de Ajuda",
+      idea: "Ideia",
+      bug: "Bug",
+      other: "Outro",
+    }
+    await resend.emails.send({
+      from: "Loop Support <onboarding@resend.dev>",
+      to: "tiago.dos.santos.ribeiro@gmail.com",
+      subject: `[Loop Support] ${categoryLabels[category] || category}: ${subject}`,
+      html: `<div style="font-family:sans-serif;max-width:600px;margin:0 auto;"><h2>Nova mensagem de suporte</h2><p><b>De:</b> ${user.email}</p><p><b>Categoria:</b> ${categoryLabels[category] || category}</p><p><b>Assunto:</b> ${subject}</p><div style="margin-top:16px;padding:16px;background:#f4f4f4;border-radius:8px;white-space:pre-wrap;">${message}</div></div>`,
+    })
+  } catch (e) {
+    console.error("[SUPPORT_EMAIL_ERROR]", e)
+  }
 
   revalidatePath("/dashboard/support")
 }
