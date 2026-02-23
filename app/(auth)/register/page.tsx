@@ -43,7 +43,7 @@ export default async function RegisterPage({
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
 
         .auth-bg {
-          min-height: 100vh;
+          height: 100vh;
           background: linear-gradient(135deg, #0f0f1a 0%, #0d1117 50%, #0a0a14 100%);
           display: flex;
           align-items: center;
@@ -249,7 +249,7 @@ export default async function RegisterPage({
                 name="fullName"
                 type="text"
                 className="auth-input"
-                placeholder="Teu Nome"
+                placeholder="o teu nome"
                 required
               />
             </div>
@@ -261,7 +261,7 @@ export default async function RegisterPage({
                 name="email"
                 type="email"
                 className="auth-input"
-                placeholder="tiago@gmail.com"
+                placeholder="o teu email"
                 required
               />
             </div>
@@ -273,7 +273,7 @@ export default async function RegisterPage({
                 name="password"
                 type="password"
                 className="auth-input"
-                placeholder="••••••••  (mín. 6 caracteres)"
+                placeholder="a tua password (mín. 6 caracteres)"
                 required
                 minLength={6}
               />
