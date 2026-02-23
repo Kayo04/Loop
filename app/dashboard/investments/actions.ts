@@ -43,8 +43,9 @@ export async function searchStockSymbol(query: string) {
     try {
         const yahooFinance = (await import('yahoo-finance2')).default
         const results = await yahooFinance.search(query.trim(), {}, { validateResult: false })
+        const EXCLUDED = ['OPTION', 'FUTURESCONTRACT', 'CURRENCY', 'SCREENER']
         return (results.quotes || [])
-            .filter((q: any) => q.symbol && (q.quoteType === 'EQUITY' || q.quoteType === 'ETF' || q.quoteType === 'CRYPTOCURRENCY' || q.quoteType === 'MUTUALFUND'))
+            .filter((q: any) => q.symbol && !EXCLUDED.includes(q.quoteType || ''))
             .slice(0, 8)
             .map((q: any) => ({
                 symbol: q.symbol as string,

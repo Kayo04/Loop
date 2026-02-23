@@ -395,19 +395,47 @@ export function AssetManager({ assets }: AssetManagerProps) {
                                                 </Button>
                                             </div>
 
-                                            {/* Live search dropdown — real Yahoo Finance results */}
-                                            {searchValue.length >= 2 && !previewData && (
-                                                <div className="absolute top-full left-0 right-12 z-50 border border-slate-200 dark:border-slate-700 rounded-lg overflow-hidden shadow-lg bg-white dark:bg-slate-900 max-h-64 overflow-y-auto mt-1">
-                                                    {isSearching ? (
-                                                        <div className="flex items-center gap-2 px-3 py-3 text-sm text-muted-foreground">
-                                                            <Loader2 className="w-4 h-4 animate-spin" /> A pesquisar...
-                                                        </div>
-                                                    ) : searchResults.length > 0 ? (
-                                                        searchResults.map((r: any) => (
+                                            {/* Live search dropdown — Combined Local + API results */}
+                                            {searchValue.length >= 2 && !previewData && (() => {
+                                                const q = searchValue.toUpperCase()
+                                                const localHits = POPULAR_ASSETS.filter(a =>
+                                                    a.symbol.replace(/-USD$/, '').replace(/\..+$/, '').includes(q) ||
+                                                    a.symbol.toUpperCase().includes(q) ||
+                                                    a.name.toUpperCase().includes(q)
+                                                ).slice(0, 5)
+
+                                                const localSymbols = new Set(localHits.map(a => a.symbol))
+                                                const apiHits = searchResults.filter(r => !localSymbols.has(r.symbol))
+
+                                                const hasResults = localHits.length > 0 || apiHits.length > 0
+
+                                                return (
+                                                    <div className="absolute top-full left-0 right-12 z-50 border border-slate-200 dark:border-slate-700 rounded-lg overflow-hidden shadow-lg bg-white dark:bg-slate-900 max-h-64 overflow-y-auto mt-1 flex flex-col">
+                                                        {localHits.map(a => (
+                                                            <button
+                                                                key={a.symbol}
+                                                                type="button"
+                                                                className="w-full text-left px-3 py-2.5 text-sm hover:bg-blue-50 dark:hover:bg-slate-800 flex items-center gap-3 border-b border-slate-100 dark:border-slate-800 transition-colors"
+                                                                onClick={() => {
+                                                                    setSymbol(a.symbol)
+                                                                    setSearchValue('')
+                                                                    setSearchResults([])
+                                                                    handlePreview(a.symbol)
+                                                                }}
+                                                            >
+                                                                <span className="font-bold font-mono text-xs bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 px-1.5 py-0.5 rounded shrink-0">
+                                                                    {formatDisplaySymbol(a.symbol)}
+                                                                </span>
+                                                                <span className="flex-1 truncate text-slate-800 dark:text-slate-200">{a.name}</span>
+                                                                <span className="text-xs text-muted-foreground shrink-0">{a.type === 'crypto' ? 'Cripto' : a.type === 'etf' ? 'ETF' : 'Ação'}</span>
+                                                            </button>
+                                                        ))}
+
+                                                        {apiHits.map(r => (
                                                             <button
                                                                 key={r.symbol}
                                                                 type="button"
-                                                                className="w-full text-left px-3 py-2.5 text-sm hover:bg-blue-50 dark:hover:bg-slate-800 flex items-center gap-3 border-b border-slate-100 dark:border-slate-800 last:border-0 transition-colors"
+                                                                className="w-full text-left px-3 py-2.5 text-sm hover:bg-blue-50 dark:hover:bg-slate-800 flex items-center gap-3 border-b border-slate-100 dark:border-slate-800 transition-colors"
                                                                 onClick={() => {
                                                                     setSymbol(r.symbol)
                                                                     setSearchValue('')
@@ -421,14 +449,22 @@ export function AssetManager({ assets }: AssetManagerProps) {
                                                                 <span className="flex-1 truncate text-slate-800 dark:text-slate-200">{r.name}</span>
                                                                 <span className="text-xs text-muted-foreground shrink-0">{r.exchange}</span>
                                                             </button>
-                                                        ))
-                                                    ) : (
-                                                        <div className="px-3 py-3 text-sm text-muted-foreground">
-                                                            Nenhum resultado. Tenta digitar o símbolo exacto (ex: <span className="font-mono">GALP.LS</span>) e prime Enter.
-                                                        </div>
-                                                    )}
-                                                </div>
-                                            )}
+                                                        ))}
+
+                                                        {isSearching && (
+                                                            <div className="flex items-center gap-2 px-3 py-3 text-sm text-muted-foreground bg-slate-50 dark:bg-slate-900">
+                                                                <Loader2 className="w-4 h-4 animate-spin" /> A pesquisar globalmente...
+                                                            </div>
+                                                        )}
+
+                                                        {!hasResults && !isSearching && (
+                                                            <div className="px-3 py-3 text-sm text-muted-foreground">
+                                                                Nenhum resultado. Tenta digitar o símbolo exato (ex: <span className="font-mono">GALP.LS</span>) e prime Enter.
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                )
+                                            })()}
 
                                             <p className="text-xs text-muted-foreground">
                                                 Escreve o nome ou símbolo. Para bolsas europeias: <span className="font-mono">GALP.LS</span>, <span className="font-mono">EDP.LS</span>, <span className="font-mono">VUAG.L</span>
