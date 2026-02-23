@@ -34,7 +34,7 @@ export default async function RegisterPage({
       return redirect(`/register?message=${encodeURIComponent(error.message)}`)
     }
 
-    return redirect("/verify-email")
+    return redirect(`/verify-email?email=${encodeURIComponent(email)}`)
   }
 
   return (
