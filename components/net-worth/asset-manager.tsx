@@ -35,6 +35,12 @@ interface AssetManagerProps {
 
 const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8', '#82ca9d'];
 
+// Helper to strip currency suffixes from display
+export const formatDisplaySymbol = (symbol: string) => {
+    if (!symbol) return ""
+    return symbol.replace(/-USD$/, '').replace(/-EUR$/, '').replace(/\.LS$/, '')
+}
+
 export function AssetManager({ assets }: AssetManagerProps) {
     const [isLoading, setIsLoading] = useState(false)
     const [isMounted, setIsMounted] = useState(false)
@@ -259,11 +265,6 @@ export function AssetManager({ assets }: AssetManagerProps) {
     }, 0)
 
 
-    // Helper to strip currency suffixes from display
-    const formatDisplaySymbol = (symbol: string) => {
-        return symbol.replace(/-USD$/, '').replace(/-EUR$/, '')
-    }
-
     return (
         <div className="space-y-8">
             
@@ -444,7 +445,7 @@ export function AssetManager({ assets }: AssetManagerProps) {
                                                                 }}
                                                             >
                                                                 <span className="font-bold font-mono text-xs bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 px-1.5 py-0.5 rounded shrink-0">
-                                                                    {r.symbol}
+                                                                    {formatDisplaySymbol(r.symbol)}
                                                                 </span>
                                                                 <span className="flex-1 truncate text-slate-800 dark:text-slate-200">{r.name}</span>
                                                                 <span className="text-xs text-muted-foreground shrink-0">{r.exchange}</span>
@@ -714,13 +715,13 @@ function AssetGroupSection({ title, description, icon, assets, onDelete, onEdit,
                                                 </div>
                                             ) : (
                                                 <div className="w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-xs font-bold text-slate-500">
-                                                    {asset.symbol ? asset.symbol.substring(0, 2) : asset.name.substring(0, 2)}
+                                                    {(asset.symbol ? formatDisplaySymbol(asset.symbol) : asset.name).substring(0, 2).toUpperCase()}
                                                 </div>
                                             )}
                                             
                                             <div>
                                                 <div className="font-bold text-foreground">
-                                                    {isFixed ? asset.name : asset.symbol}
+                                                    {isFixed ? asset.name : formatDisplaySymbol(asset.symbol)}
                                                 </div>
                                                 <div className="text-xs text-muted-foreground w-32 truncate" title={asset.name}>
                                                     {isFixed ? getCategoryLabel(asset.type) : asset.name}
