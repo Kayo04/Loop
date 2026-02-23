@@ -36,7 +36,8 @@ export function DashboardShell({ children, user, profile }: DashboardShellProps)
     { href: "/dashboard/networth", label: "Património", icon: Landmark },
     { href: "/dashboard/investments", label: "Investimentos", icon: TrendingUp },
     { href: "/dashboard/focus", label: "Foco", icon: Zap },
-    { href: "/dashboard/plans", label: "Planos", icon: Sparkles },
+    // Only show Plans tab to free users
+    ...(profile?.subscription_tier !== 'pro' ? [{ href: "/dashboard/plans", label: "Planos", icon: Sparkles }] : []),
   ]
 
   // Initials for Avatar
