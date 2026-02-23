@@ -1,8 +1,6 @@
-import yahooFinance from 'yahoo-finance2';
-import { JSDOM } from 'jsdom';
+// yahoo-finance2 and jsdom are loaded dynamically inside functions
+// to avoid Vercel serverless module-level crashes
 
-// Suppress notices if needed
-// yahooFinance.suppressNotices(['yahooSurvey']);
 
 export interface StockData {
     symbol: string;
@@ -23,6 +21,9 @@ const MOCK_DATA: Record<string, Partial<StockData>> = {
 };
 
 export async function fetchStockData(symbol: string, targetCurrency: string = 'EUR'): Promise<StockData | null> {
+    // Dynamic import — avoids top-level module crash on Vercel
+    const yahooFinance = (await import('yahoo-finance2')).default;
+
     console.log(`[StockService] Fetching ${symbol} -> ${targetCurrency}`);
     let symbolClean = symbol.toUpperCase().trim();
 
@@ -153,6 +154,10 @@ export async function fetchStockData(symbol: string, targetCurrency: string = 'E
 }
 
 async function fetchStockHtmlFallback(symbol: string, targetCurrency: string, depth: number = 0): Promise<StockData | null> {
+    // Dynamic imports
+    const yahooFinance = (await import('yahoo-finance2')).default;
+    const { JSDOM } = await import('jsdom');
+
     if (depth > 1) {
         console.warn(`[StockService] Recursion limit reached for ${symbol}`);
         return null;
