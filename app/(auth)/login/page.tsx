@@ -1,6 +1,7 @@
 import Link from "next/link"
 import { redirect } from "next/navigation"
 import { createClient } from "@/lib/supabase-server"
+import { SubmitButton } from "@/components/auth/submit-button"
 
 export default async function LoginPage({
   searchParams,
@@ -273,9 +274,7 @@ export default async function LoginPage({
               </div>
             )}
 
-            <button type="submit" className="auth-btn">
-              Entrar na conta →
-            </button>
+            <SubmitButton label="Entrar na conta →" loadingLabel="A entrar..." />
           </form>
 
           <div className="auth-footer">

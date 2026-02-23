@@ -1,6 +1,7 @@
 import Link from "next/link"
 import { redirect } from "next/navigation"
 import { createClient } from "@/lib/supabase-server"
+import { SubmitButton } from "@/components/auth/submit-button"
 
 export default async function RegisterPage({
   searchParams,
@@ -285,9 +286,7 @@ export default async function RegisterPage({
               </div>
             )}
 
-            <button type="submit" className="auth-btn">
-              Criar conta →
-            </button>
+            <SubmitButton label="Criar conta →" loadingLabel="A criar conta..." />
           </form>
 
           <p className="auth-terms">
