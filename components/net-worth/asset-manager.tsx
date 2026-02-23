@@ -7,9 +7,9 @@ import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { Trash2, Building2, TrendingUp, Loader2, Check, ChevronsUpDown, Wallet, PieChart as PieChartIcon, Home, Car, Banknote, Landmark, CircleDollarSign } from "lucide-react"
+import { Trash2, Building2, TrendingUp, Loader2, Check, ChevronsUpDown, Wallet, PieChart as PieChartIcon, Home, Car, Banknote, Landmark, CircleDollarSign, Pencil, X } from "lucide-react"
 import { useState, useMemo, useEffect } from "react"
-import { createFixedAsset, deleteAsset, previewStockAsset, createAsset } from "@/app/dashboard/investments/actions"
+import { createFixedAsset, deleteAsset, previewStockAsset, createAsset, updateAsset } from "@/app/dashboard/investments/actions"
 import { toast } from "sonner"
 import { cn } from "@/lib/utils"
 import { Skeleton } from "@/components/ui/skeleton"
@@ -48,6 +48,11 @@ export function AssetManager({ assets }: AssetManagerProps) {
     const [fixedValue, setFixedValue] = useState("")
     const [fixedCategory, setFixedCategory] = useState("Real Estate")
 
+    // --- EDIT STATE ---
+    const [editingId, setEditingId] = useState<string | null>(null)
+    const [editValue, setEditValue] = useState("")
+    const [isEditLoading, setIsEditLoading] = useState(false)
+
     // --- MARKET ASSET STATE ---
     const [symbol, setSymbol] = useState("")
     const [quantity, setQuantity] = useState("")
@@ -83,8 +88,32 @@ export function AssetManager({ assets }: AssetManagerProps) {
         setIsLoading(false)
     }
 
+    // --- HANDLERS: EDIT ---
+    function startEdit(asset: any, isFixed: boolean) {
+        setEditingId(asset.id)
+        setEditValue(isFixed ? String(asset.current_price) : String(asset.quantity))
+    }
+
+    async function saveEdit(asset: any, isFixed: boolean) {
+        const val = parseFloat(editValue)
+        if (isNaN(val) || val < 0) {
+            toast.error("Valor inválido")
+            return
+        }
+        setIsEditLoading(true)
+        const data = isFixed
+            ? { current_price: val, buy_price: val }
+            : { quantity: val }
+        const result = await updateAsset(asset.id, data)
+        if (result.error) toast.error(result.error)
+        else toast.success("Atualizado!")
+        setEditingId(null)
+        setIsEditLoading(false)
+    }
+
     // --- HANDLERS: MARKET ---
     async function handlePreview(overrideSymbol?: string) {
+
         const sym = overrideSymbol || symbol
         if (!sym) return
         
@@ -532,6 +561,13 @@ export function AssetManager({ assets }: AssetManagerProps) {
                         icon={<Building2 className="w-5 h-5 text-purple-500" />}
                         assets={fixedAssets}
                         onDelete={handleDelete}
+                        onEdit={startEdit}
+                        onSaveEdit={saveEdit}
+                        onCancelEdit={() => setEditingId(null)}
+                        editingId={editingId}
+                        editValue={editValue}
+                        onEditValueChange={setEditValue}
+                        isEditLoading={isEditLoading}
                         type="fixed"
                     />
                 )}
@@ -544,6 +580,13 @@ export function AssetManager({ assets }: AssetManagerProps) {
                         icon={<TrendingUp className="w-5 h-5 text-blue-500" />}
                         assets={stockAssets}
                         onDelete={handleDelete}
+                        onEdit={startEdit}
+                        onSaveEdit={saveEdit}
+                        onCancelEdit={() => setEditingId(null)}
+                        editingId={editingId}
+                        editValue={editValue}
+                        onEditValueChange={setEditValue}
+                        isEditLoading={isEditLoading}
                         type="stock"
                     />
                 )}
@@ -556,6 +599,13 @@ export function AssetManager({ assets }: AssetManagerProps) {
                         icon={<PieChartIcon className="w-5 h-5 text-orange-500" />}
                         assets={etfAssets}
                         onDelete={handleDelete}
+                        onEdit={startEdit}
+                        onSaveEdit={saveEdit}
+                        onCancelEdit={() => setEditingId(null)}
+                        editingId={editingId}
+                        editValue={editValue}
+                        onEditValueChange={setEditValue}
+                        isEditLoading={isEditLoading}
                         type="etf"
                     />
                 )}
@@ -568,6 +618,13 @@ export function AssetManager({ assets }: AssetManagerProps) {
                         icon={<Wallet className="w-5 h-5 text-emerald-500" />}
                         assets={cryptoAssets}
                         onDelete={handleDelete}
+                        onEdit={startEdit}
+                        onSaveEdit={saveEdit}
+                        onCancelEdit={() => setEditingId(null)}
+                        editingId={editingId}
+                        editValue={editValue}
+                        onEditValueChange={setEditValue}
+                        isEditLoading={isEditLoading}
                         type="crypto"
                     />
                 )}
@@ -587,7 +644,7 @@ export function AssetManager({ assets }: AssetManagerProps) {
     )
 }
 
-function AssetGroupSection({ title, description, icon, assets, onDelete, type }: any) {
+function AssetGroupSection({ title, description, icon, assets, onDelete, onEdit, onSaveEdit, onCancelEdit, editingId, editValue, onEditValueChange, isEditLoading, type }: any) {
     return (
         <Card className="border-none shadow-lg bg-card/50 backdrop-blur-sm overflow-hidden">
             <CardHeader className="border-b border-slate-100 dark:border-slate-800/50 bg-slate-50/50 dark:bg-slate-900/20">
@@ -657,18 +714,50 @@ function AssetGroupSection({ title, description, icon, assets, onDelete, type }:
                                     <TableCell className="text-right font-mono text-sm text-muted-foreground">
                                         {isFixed ? "-" : new Intl.NumberFormat('pt-PT', { style: 'currency', currency: asset.currency || 'EUR' }).format(asset.current_price)}
                                     </TableCell>
-                                    <TableCell className="text-right font-bold font-mono text-base pr-6 text-foreground">
-                                        {new Intl.NumberFormat('pt-PT', { style: 'currency', currency: asset.currency || 'EUR' }).format(totalVal)}
+                                    <TableCell className="text-right font-bold font-mono text-base pr-2 text-foreground">
+                                        {editingId === asset.id ? (
+                                            <div className="flex items-center justify-end gap-1">
+                                                <input
+                                                    autoFocus
+                                                    type="number"
+                                                    min="0"
+                                                    step="any"
+                                                    value={editValue}
+                                                    onChange={e => onEditValueChange(e.target.value)}
+                                                    onKeyDown={e => { if (e.key === 'Enter') onSaveEdit(asset, isFixed); if (e.key === 'Escape') onCancelEdit(); }}
+                                                    className="w-28 text-right px-2 py-1 text-sm border border-blue-400 rounded-md bg-background focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                                />
+                                                <button onClick={() => onSaveEdit(asset, isFixed)} disabled={isEditLoading} className="p-1 rounded hover:bg-green-50 dark:hover:bg-green-900/20 text-green-600" title="Guardar">
+                                                    {isEditLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
+                                                </button>
+                                                <button onClick={onCancelEdit} className="p-1 rounded hover:bg-red-50 dark:hover:bg-red-900/20 text-red-500" title="Cancelar">
+                                                    <X className="w-4 h-4" />
+                                                </button>
+                                            </div>
+                                        ) : (
+                                            new Intl.NumberFormat('pt-PT', { style: 'currency', currency: asset.currency || 'EUR' }).format(totalVal)
+                                        )}
                                     </TableCell>
-                                    <TableCell>
-                                        <Button 
-                                            variant="ghost" 
-                                            size="icon" 
-                                            className="h-8 w-8 text-neutral-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/20 transition-all opacity-0 group-hover:opacity-100"
-                                            onClick={() => onDelete(asset.id)}
-                                        >
-                                            <Trash2 className="w-4 h-4" />
-                                        </Button>
+                                    <TableCell className="pr-4">
+                                        <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                            <Button 
+                                                variant="ghost" 
+                                                size="icon" 
+                                                className="h-8 w-8 text-neutral-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-950/20 transition-all"
+                                                onClick={() => onEdit(asset, isFixed)}
+                                                title={isFixed ? "Editar valor" : "Editar quantidade"}
+                                            >
+                                                <Pencil className="w-4 h-4" />
+                                            </Button>
+                                            <Button 
+                                                variant="ghost" 
+                                                size="icon" 
+                                                className="h-8 w-8 text-neutral-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/20 transition-all"
+                                                onClick={() => onDelete(asset.id)}
+                                            >
+                                                <Trash2 className="w-4 h-4" />
+                                            </Button>
+                                        </div>
                                     </TableCell>
                                 </TableRow>
                              )

@@ -101,6 +101,26 @@ export async function createFixedAsset(formData: FormData) {
     return { success: true }
 }
 
+// 2. UPDATE ASSET (Edit quantity or value)
+export async function updateAsset(id: string, data: { quantity?: number; current_price?: number; buy_price?: number }) {
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return { error: "Not authenticated" }
+
+    const { error } = await supabase
+        .from("assets")
+        .update({ ...data, updated_at: new Date().toISOString() })
+        .eq("id", id)
+        .eq("user_id", user.id) // security: only update user's own assets
+
+    if (error) return { error: error.message }
+
+    revalidatePath("/dashboard/networth")
+    revalidatePath("/dashboard/investments")
+    return { success: true }
+}
+
+
 // 2. CREATE ASSET (Single) - With Upsert/Merge Logic
 export async function createAsset(formData: FormData) {
     const supabase = await createClient()
