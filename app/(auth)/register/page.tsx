@@ -91,30 +91,18 @@ export default async function RegisterPage({
 
         .auth-logo {
           display: flex;
-          align-items: center;
-          gap: 10px;
+          justify-content: center;
           margin-bottom: 2rem;
         }
 
-        .auth-logo-icon {
-          width: 40px;
-          height: 40px;
-          background: linear-gradient(135deg, #6366f1, #3b82f6);
-          border-radius: 10px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          font-size: 20px;
-          box-shadow: 0 4px 15px rgba(99, 102, 241, 0.4);
-        }
-
         .auth-logo-text {
-          font-size: 1.4rem;
+          font-size: 1.8rem;
           font-weight: 800;
           background: linear-gradient(135deg, #fff 0%, #94a3b8 100%);
           -webkit-background-clip: text;
           -webkit-text-fill-color: transparent;
           background-clip: text;
+          letter-spacing: -0.02em;
         }
 
         .auth-title {
@@ -246,7 +234,6 @@ export default async function RegisterPage({
       <div className="auth-bg">
         <div className="auth-card">
           <div className="auth-logo">
-            <div className="auth-logo-icon">∞</div>
             <span className="auth-logo-text">Loop</span>
           </div>
 

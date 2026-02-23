@@ -64,30 +64,18 @@ export default function VerifyEmailPage() {
 
         .auth-logo {
           display: flex;
-          align-items: center;
           justify-content: center;
-          gap: 10px;
           margin-bottom: 2rem;
         }
 
-        .auth-logo-icon {
-          width: 36px;
-          height: 36px;
-          background: linear-gradient(135deg, #6366f1, #3b82f6);
-          border-radius: 9px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          font-size: 18px;
-        }
-
         .auth-logo-text {
-          font-size: 1.3rem;
+          font-size: 1.8rem;
           font-weight: 800;
           background: linear-gradient(135deg, #fff 0%, #94a3b8 100%);
           -webkit-background-clip: text;
           -webkit-text-fill-color: transparent;
           background-clip: text;
+          letter-spacing: -0.02em;
         }
 
         .verify-title {
@@ -188,7 +176,6 @@ export default function VerifyEmailPage() {
       <div className="auth-bg">
         <div className="auth-card">
           <div className="auth-logo">
-            <div className="auth-logo-icon">∞</div>
             <span className="auth-logo-text">Loop</span>
           </div>
 
