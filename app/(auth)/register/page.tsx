@@ -240,11 +240,6 @@ export default async function RegisterPage({
           <h1 className="auth-title">Criar conta grátis</h1>
           <p className="auth-subtitle">Começa a gerir as tuas finanças hoje</p>
 
-          <div className="auth-perks">
-            <div className="auth-perk"><span className="auth-perk-icon">💰</span> Controlo de receitas e despesas</div>
-            <div className="auth-perk"><span className="auth-perk-icon">📊</span> Dashboard com insights em tempo real</div>
-            <div className="auth-perk"><span className="auth-perk-icon">🔒</span> Dados 100% seguros e privados</div>
-          </div>
 
           <form action={signup}>
             <div className="auth-field">
