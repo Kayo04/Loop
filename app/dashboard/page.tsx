@@ -6,6 +6,7 @@ import { TrendingUp, Calendar, Flame, CheckCircle } from "lucide-react"
 import { HabitHistory } from "@/components/habit-history"
 import { HabitTracker } from "@/components/habit-tracker"
 import { SubscriptionVerifier } from "@/components/subscription-verifier"
+import { DailyRefresher } from "@/components/daily-refresher"
 
 export default async function Dashboard() {
   const supabase = await createClient()
@@ -113,6 +114,9 @@ export default async function Dashboard() {
     <div className="space-y-8 pb-10 font-sans">
       {/* Subscription Verifier - handles post-purchase upgrade */}
       <SubscriptionVerifier />
+      
+      {/* Ensures the page reloads precisely after midnight to update the dashboard dates */}
+      <DailyRefresher />
       
       {/* CABEÇALHO */}
       <div className="flex flex-row justify-between items-end border-b border-slate-100 dark:border-slate-800 pb-6">
