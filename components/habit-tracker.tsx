@@ -108,6 +108,7 @@ export function HabitTracker({ habits, weekDays, monthName, daysInMonth }: Habit
                     <TableHeader className="bg-slate-50 dark:bg-slate-950">
                         <TableRow className="hover:bg-transparent">
                             <TableHead className="w-[300px] pl-6 font-bold text-slate-500 uppercase text-xs tracking-wider">Hábito</TableHead>
+                            <TableHead className="w-[100px] text-center font-bold text-blue-600 dark:text-blue-400 uppercase text-xs tracking-wider">Check-in</TableHead>
                             {headers.map((h, i) => (
                                 <TableHead key={i} className={`text-center p-0 w-10 h-14 ${h.isToday ? "bg-blue-50/50 dark:bg-blue-900/10" : ""}`}>
                                     <div className="flex flex-col items-center justify-center h-full">
@@ -146,7 +147,28 @@ export function HabitTracker({ habits, weekDays, monthName, daysInMonth }: Habit
                                         </Link>
                                     </TableCell>
                                     
-                                    {/* Grid de Checkboxes (7 dias) */}
+                                    {/* Botão Check Hoje */}
+                                    <TableCell className="text-center px-4">
+                                        {(() => {
+                                            const todayItem = headers.find(h => h.isToday);
+                                            const todayIso = todayItem ? todayItem.dateIso : new Date().toISOString().split('T')[0];
+                                            const isCompletedToday = localHistory.includes(todayIso);
+                                            const isAnimating = animating === `${habit.id}:${todayIso}`;
+
+                                            return (
+                                                <button 
+                                                    onClick={() => handleToggle(habit.id, todayIso)}
+                                                    className={`w-12 h-12 mx-auto rounded-xl flex items-center justify-center transition-all duration-150 shadow-md ${isAnimating ? "scale-110" : "scale-100 hover:scale-105"} ${isCompletedToday ? "bg-emerald-500 text-white shadow-emerald-500/20" : "bg-gradient-to-tr from-blue-600 to-indigo-600 text-white hover:shadow-blue-500/30"} focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-slate-900 border-0`}
+                                                    title={isCompletedToday ? "Desmarcar hoje" : "Completar hoje"}
+                                                    style={{ willChange: "transform" }}
+                                                >
+                                                    <CheckCircle2 size={28} strokeWidth={isCompletedToday ? 3 : 2} className={isCompletedToday ? "" : "opacity-80"} />
+                                                </button>
+                                            )
+                                        })()}
+                                    </TableCell>
+                                    
+                                    {/* Grid de Checkboxes (7 dias) - CLICÁVEIS */}
                                     {headers.map((h, i) => {
                                         const isCompleted = localHistory.includes(h.dateIso)
                                         const isAnimating = animating === `${habit.id}:${h.dateIso}`
@@ -155,18 +177,16 @@ export function HabitTracker({ habits, weekDays, monthName, daysInMonth }: Habit
                                                 <div className="flex items-center justify-center h-full">
                                                     <button 
                                                         onClick={() => handleToggle(habit.id, h.dateIso)}
-                                                        className={`w-8 h-8 rounded-lg flex items-center justify-center
-                                                            transition-all duration-150
-                                                            ${isAnimating ? "scale-125" : isCompleted ? "scale-100" : "scale-90 hover:scale-100"}
+                                                        className={`w-8 h-8 rounded-lg flex items-center justify-center transition-all duration-300
+                                                            ${isAnimating ? "scale-125" : "scale-100 hover:scale-110"}
                                                             ${isCompleted 
-                                                                ? "bg-green-500 text-white shadow-sm" 
-                                                                : "bg-slate-100 dark:bg-slate-800 text-slate-300 hover:border-blue-400 hover:text-blue-400 border border-transparent"
+                                                                ? "bg-emerald-500 text-white shadow-sm" 
+                                                                : "bg-slate-100 dark:bg-slate-800 text-slate-400 hover:border-blue-400 hover:text-blue-400 border border-transparent"
                                                             }`}
-                                                        style={{ willChange: "transform" }}
                                                     >
                                                         {isCompleted 
                                                             ? <CheckCircle2 size={16} strokeWidth={3} /> 
-                                                            : <div className="w-1.5 h-1.5 rounded-full bg-slate-300 dark:bg-slate-700" />
+                                                            : <div className="w-2 h-2 rounded-full bg-slate-300 dark:bg-slate-700" />
                                                         }
                                                     </button>
                                                 </div>
